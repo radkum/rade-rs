@@ -12,4 +12,4 @@ pub use rade_engine::*;
 pub use rule_set::*;
 pub use utils::*;
 
-type GUID = uuid::Uuid;
+type Guid = uuid::Uuid;

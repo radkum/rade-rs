@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 use super::{Cast, InsensitiveFlag, Val};
 use crate::{Event, rule_set::rule::operand::val::Contains};
 
-#[derive(Debug, Deserialize, Serialize, PartialEq)]
+#[derive(Debug, Deserialize, Serialize, PartialEq, Clone, Hash)]
 pub struct IntList(pub Vec<u64>);
 
 impl IntList {

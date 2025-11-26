@@ -1,10 +1,12 @@
 mod error;
+mod predicates;
 mod rule;
 mod rules;
 
 use core::mem::size_of;
 
 pub use error::*;
+pub(super) use predicates::Predicates;
 pub use rule::*;
 pub use rules::*;
 use serde::{Deserialize, Serialize};
@@ -47,6 +49,7 @@ impl RuleSetHeader {
 pub struct RuleSet {
     header: RuleSetHeader,
     rules: Rules,
+    //compiled_rules: Option<CompiledRules>,
 }
 
 impl RuleSet {
@@ -100,9 +103,7 @@ impl RuleSet {
         header.verify_magic()?;
         header.verify_sha256(Self::calc_checksum(data))?;
 
-        println!("before deserializing rules");
         let rules: Rules = bincode::serde::decode_from_slice(data, BIN_CONFIG)?.0;
-        println!("AFTER deserializing rules");
         Ok(Self::new(header, rules))
     }
 

@@ -3,14 +3,14 @@ use serde::{Deserialize, Serialize};
 use super::{Cast, Eq, InsensitiveFlag, Val};
 use crate::{Event, FatString};
 
-#[derive(Debug, Deserialize, Serialize, PartialEq)]
+#[derive(Debug, Deserialize, Serialize, PartialEq, Clone, Hash)]
 pub enum FieldStr {
     Content,
     AppName,
     FileName,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, PartialEq, Clone, Hash)]
 pub enum Str {
     Lit(FatString),
     Field(FieldStr),
@@ -77,7 +77,12 @@ impl Cast for Str {
 }
 
 impl Eq for Str {
-    fn eq<'a>(&'a self, elem: &Val, event: &'a Event, comp_flag: &Option<InsensitiveFlag>) -> bool {
+    fn equal<'a>(
+        &'a self,
+        elem: &Val,
+        event: &'a Event,
+        comp_flag: &Option<InsensitiveFlag>,
+    ) -> bool {
         let (Some(s1), Some(s2)) = (self.as_str(event, comp_flag), elem.as_str(event, comp_flag))
         else {
             return false;

@@ -1,20 +1,49 @@
-use crate::{Event, GUID};
+use crate::{Event, Guid};
 
 #[derive(Debug, Default)]
-pub struct Matches(Vec<Match_>);
+pub struct Matches(Vec<(Event, MatchedRules)>);
 impl Matches {
-    pub fn add_match(&mut self, _event: Event, rule_id: GUID) {
-        self.0.push(Match_ { rule_id });
+    pub fn add_match(&mut self, event: Event, matched_rules: MatchedRules) {
+        if !matched_rules.0.is_empty() {
+            self.0.push((event, matched_rules));
+        }
     }
 }
 
 #[derive(Debug)]
 pub struct Match_ {
-    rule_id: GUID,
+    rule_id: Guid,
 }
 
 impl Match_ {
-    pub fn rule_id(&self) -> &GUID {
+    pub fn rule_id(&self) -> &Guid {
         &self.rule_id
+    }
+}
+
+#[derive(Debug, Default)]
+pub struct MatchedRules(Vec<Guid>);
+impl MatchedRules {
+    pub fn new() -> Self {
+        Self(Vec::new())
+    }
+
+    pub fn add(&mut self, rule_id: Guid) {
+        self.0.push(rule_id);
+    }
+}
+
+impl std::fmt::Display for Matches {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        writeln!(f, "Matches {{ ")?;
+        for (i, (event, matched_rules)) in self.0.iter().enumerate() {
+            writeln!(
+                f,
+                "\t{i}: \"{}\", Matched: {:?}",
+                event.name.as_deref().unwrap_or("Unnamed event"),
+                matched_rules.0
+            )?;
+        }
+        write!(f, "}}")
     }
 }

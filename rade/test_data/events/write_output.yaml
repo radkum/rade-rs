@@ -1,3 +1,4 @@
+name: write_output
 pid: 1111
 tid: 2111
 file_name: C:\path\to\exe

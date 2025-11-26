@@ -6,7 +6,7 @@ use rade::*;
 type Result<T> = core::result::Result<T, Box<dyn core::error::Error>>;
 
 fn create_event() {
-    let event1 = Event::new(Some(1234), Some(5678), Some("C:\\path\\to\\exe".into()), Some("powershell".into()), Some("script.ps1".into()), Some(r#""[Ref].Assembly.GetType("System.Management.Automation.AmsiUtils").GetField('amsiInitFailed','NonPublic,Static').SetValue($null,$true)""#.into()), Some(4321), Some(1));
+    let event1 = Event::new(Some("first_event".to_string()),Some(1234), Some(5678), Some("C:\\path\\to\\exe".into()), Some("powershell".into()), Some("script.ps1".into()), Some(r#""[Ref].Assembly.GetType("System.Management.Automation.AmsiUtils").GetField('amsiInitFailed','NonPublic,Static').SetValue($null,$true)""#.into()), Some(4321), Some(1));
     //let event2 = Event::new(Some(1234), Some(5678),
     // Some("C:\\path\\to\\exe".into()), Some("powershell".into()),
     // Some("script.ps1".into()),
@@ -61,12 +61,14 @@ fn create_rule() -> Rule {
                 "[Ref].Assembly.GetType('System.Management.Automation.AmsiUtils')".into(),
             )),
             Some(InsensitiveFlag::CaseAndApostrophe),
-        ),
+        )
+        .into(),
         Operand::Contains(
             Val::Str(Str::Field(FieldStr::Content)),
             Val::Str(Str::Lit(".GetField('amsiInitFailed'".into())),
             Some(InsensitiveFlag::CaseAndApostrophe),
-        ),
+        )
+        .into(),
     ]);
     let rule = Rule::new(
         uuid::Uuid::from_str("43025534-69e4-4e81-a78f-fad61111a7df").unwrap(),
@@ -76,7 +78,7 @@ fn create_rule() -> Rule {
         "TA0005",
         "T1562.001",
         r#""[Ref].Assembly.GetType("System.Management.Automation.AmsiUtils").GetField('amsiInitFailed','NonPublic,Static').SetValue($null,$true)""#,
-        condition,
+        condition.into(),
     );
     println!("{}", serde_yaml_bw::to_string(&rule).unwrap());
     rule

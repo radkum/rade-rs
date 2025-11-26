@@ -1,7 +1,10 @@
+use std::hash::Hash;
+
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, PartialEq, Serialize, Deserialize, Clone, Hash)]
 pub enum InsensitiveFlag {
+    #[serde(rename = "CaseInsensitive")]
     Case,
     Apostrophe,
     CaseAndApostrophe,
@@ -13,6 +16,18 @@ pub struct FatString {
     pub case_insensitive: String,
     pub apostrophe_insensitive: String,
     pub ca_insensitive: String,
+}
+
+impl core::cmp::PartialEq for FatString {
+    fn eq(&self, other: &Self) -> bool {
+        self.plain == other.plain
+    }
+}
+
+impl Hash for FatString {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.plain.hash(state);
+    }
 }
 
 impl alloc::fmt::Debug for FatString {

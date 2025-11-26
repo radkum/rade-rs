@@ -3,12 +3,12 @@ use serde::{Deserialize, Serialize};
 use super::{Cast, Contains, InsensitiveFlag, Val};
 use crate::{Event, FatString};
 
-#[derive(Debug, Deserialize, Serialize, PartialEq)]
+#[derive(Debug, Deserialize, Serialize, PartialEq, Clone, Hash)]
 pub enum FieldStrList {
     ContentTokens,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, PartialEq, Clone, Hash)]
 pub enum StrList {
     Lit(Vec<FatString>),
     Field(FieldStrList),

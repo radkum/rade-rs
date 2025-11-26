@@ -14,6 +14,10 @@ impl Events {
         self.0.iter()
     }
 
+    pub fn get(self) -> Vec<Event> {
+        self.0
+    }
+
     fn add_event(&mut self, event: Event) {
         self.0.push(event);
     }
@@ -24,7 +28,10 @@ impl Events {
             if path.is_file() {
                 let content = read_to_string(path)
                     .map_err(|err| anyhow!("Failed to read file {}: {:?}", path.display(), err))?;
-                let event = serde_yaml_bw::from_str::<Event>(&content)?;
+                let mut event = serde_yaml_bw::from_str::<Event>(&content)?;
+                if event.name.is_none() {
+                    event.name = Some(path.file_stem().unwrap().to_string_lossy().to_string());
+                }
                 events.add_event(event);
             } else if path.is_dir() {
                 let events_dir = std::fs::read_dir(path)?;
@@ -89,6 +96,7 @@ impl Events {
 
 #[derive(Debug, Clone)]
 pub struct Event {
+    pub name: Option<String>,
     pub pid: Option<u64>,
     pub tid: Option<u64>,
     pub file_name: Option<FatString>,
@@ -102,6 +110,7 @@ pub struct Event {
 
 impl Event {
     pub fn new(
+        name: Option<String>,
         pid: Option<u64>,
         tid: Option<u64>,
         file_name: Option<FatString>,
@@ -112,6 +121,7 @@ impl Event {
         request_number: Option<u64>,
     ) -> Self {
         Self {
+            name,
             pid,
             tid,
             file_name,

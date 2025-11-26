@@ -7,13 +7,13 @@ pub use operand::*;
 use serde::{Deserialize, Serialize};
 
 use super::RuleResult;
-use crate::{Event, GUID};
+use crate::{Event, Guid};
 
-type Condition = Operand;
+type Condition = OperandContainer;
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct Rule {
-    id: GUID,
+    id: Guid,
     name: Option<String>,
     description: Option<String>,
     mitre_tactic: Option<String>,
@@ -32,7 +32,7 @@ impl FromStr for Rule {
 }
 impl Rule {
     pub fn new(
-        guid: GUID,
+        guid: Guid,
         name: &str,
         description: &str,
         mitre_tactic: &str,
@@ -59,7 +59,7 @@ impl Rule {
         Ok(serde_yaml_bw::from_str::<Rule>(&content)?)
     }
 
-    pub fn id(&self) -> &GUID {
+    pub fn id(&self) -> &Guid {
         &self.id
     }
 
@@ -68,6 +68,19 @@ impl Rule {
             return false;
         };
         condition.evaluate(event)
+    }
+
+    pub fn operands(&self) -> (Vec<OperandContainer>, Vec<OperandContainer>) {
+        let mut simple_operands = Vec::new();
+        let mut complex_operands = Vec::new();
+        if let Some(condition) = &self.condition {
+            condition.operands(&mut simple_operands, &mut complex_operands);
+        }
+        (simple_operands, complex_operands)
+    }
+
+    pub fn condition_hash(&self) -> Option<OpHash> {
+        self.condition.as_ref().map(|cond| cond.hash())
     }
 }
 
@@ -114,13 +127,16 @@ condition: !And
                         "[Ref].Assembly.GetType('System.Management.Automation.AmsiUtils')".into(),
                     )),
                     Some(InsensitiveFlag::CaseAndApostrophe),
-                ),
+                )
+                .into(),
                 Operand::Contains(
                     Val::Str(Str::Field(FieldStr::Content)),
                     Val::Str(Str::Lit(".GetField('amsiInitFailed'".into())),
                     Some(InsensitiveFlag::CaseAndApostrophe),
-                ),
-            ]),
+                )
+                .into(),
+            ])
+            .into(),
         );
 
         assert_eq!(

@@ -1,3 +1,4 @@
+name: amsi_init_failed
 pid: 1234
 tid: 5678
 file_name: C:\path\to\exe

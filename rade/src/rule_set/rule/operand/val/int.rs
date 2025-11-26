@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 use super::{Cast, Contains, Eq, InsensitiveFlag, Val};
 use crate::Event;
 
-#[derive(Debug, Deserialize, Serialize, PartialEq)]
+#[derive(Debug, Deserialize, Serialize, PartialEq, Clone, Hash)]
 pub enum FieldInt {
     Pid,
     Tid,
@@ -11,7 +11,7 @@ pub enum FieldInt {
     RequestNumber,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, PartialEq, Clone, Hash)]
 pub enum Int {
     Lit(u64),
     Field(FieldInt),
@@ -34,7 +34,7 @@ impl Cast for Int {
 }
 
 impl Eq for Int {
-    fn eq(&self, elem: &Val, event: &Event, _: &Option<InsensitiveFlag>) -> bool {
+    fn equal(&self, elem: &Val, event: &Event, _: &Option<InsensitiveFlag>) -> bool {
         let (Some(i1), Some(i2)) = (self.as_u64(event), elem.as_u64(event)) else {
             return false;
         };
@@ -42,12 +42,12 @@ impl Eq for Int {
     }
 
     fn neq(&self, elem: &Val, event: &Event, _: &Option<InsensitiveFlag>) -> bool {
-        !self.eq(elem, event, &None)
+        !self.equal(elem, event, &None)
     }
 }
 
 impl Contains for Int {
     fn contains(&self, elem: &Val, event: &Event, _: &Option<InsensitiveFlag>) -> bool {
-        self.eq(elem, event, &None)
+        self.equal(elem, event, &None)
     }
 }

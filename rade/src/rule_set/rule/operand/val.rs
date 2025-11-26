@@ -12,7 +12,7 @@ pub use str_list::*;
 use crate::{Event, InsensitiveFlag};
 
 pub trait Eq {
-    fn eq<'a>(
+    fn equal<'a>(
         &'a self,
         _elem: &Val,
         _event: &'a Event,
@@ -65,7 +65,7 @@ trait Cast {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Clone, Hash)]
 pub enum Val {
     Int(Int),
     IntList(IntList),
@@ -85,12 +85,17 @@ impl Contains for Val {
 }
 
 impl Eq for Val {
-    fn eq<'a>(&'a self, elem: &Val, event: &'a Event, comp_flag: &Option<InsensitiveFlag>) -> bool {
+    fn equal<'a>(
+        &'a self,
+        elem: &Val,
+        event: &'a Event,
+        comp_flag: &Option<InsensitiveFlag>,
+    ) -> bool {
         match self {
-            Val::Int(int) => int.eq(elem, event, comp_flag),
-            //Val::IntList(int_list) => int_list.eq(elem, event, comp_flag),
-            Val::Str(str) => str.eq(elem, event, comp_flag),
-            //Val::StrList(str_list) => str_list.eq(elem, event, comp_flag),
+            Val::Int(int) => int.equal(elem, event, comp_flag),
+            //Val::IntList(int_list) => int_list.equal(elem, event, comp_flag),
+            Val::Str(str) => str.equal(elem, event, comp_flag),
+            //Val::StrList(str_list) => str_list.equal(elem, event, comp_flag),
             _ => false,
         }
     }

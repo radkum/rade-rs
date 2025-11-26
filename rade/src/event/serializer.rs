@@ -4,6 +4,7 @@ use super::{Event, FatString};
 
 #[derive(serde::Deserialize, Serialize)]
 struct EventSerialized {
+    name: Option<String>,
     pid: Option<u64>,
     tid: Option<u64>,
     file_name: Option<String>,
@@ -21,6 +22,7 @@ impl<'de> serde::Deserialize<'de> for Event {
     {
         let helper = EventSerialized::deserialize(deserializer)?;
         Ok(Event {
+            name: helper.name,
             pid: helper.pid,
             tid: helper.tid,
             file_name: helper.file_name.map(FatString::from),
@@ -47,6 +49,7 @@ impl<'de> serde::Deserialize<'de> for Event {
 impl From<&Event> for EventSerialized {
     fn from(event: &Event) -> Self {
         EventSerialized {
+            name: event.name.clone(),
             pid: event.pid,
             tid: event.tid,
             file_name: event.file_name.as_ref().map(|s| s.plain.clone()),
@@ -61,6 +64,7 @@ impl From<&Event> for EventSerialized {
 impl From<&EventSerialized> for Event {
     fn from(event: &EventSerialized) -> Self {
         Event {
+            name: event.name.clone(),
             pid: event.pid,
             tid: event.tid,
             file_name: event.file_name.as_ref().map(FatString::from),

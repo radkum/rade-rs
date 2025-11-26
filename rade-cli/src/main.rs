@@ -24,10 +24,9 @@ fn main() -> Result<()> {
 
     println!("Loaded {} events", events.iter().count());
     println!("Loaded {} rules", rule_set.rules().iter().count());
-    let mut engine = RadeEngine::default();
-    engine.load_rules(rule_set.retain_rules());
-
-    let matches = engine.eval_bottom_up(events);
-    println!("{:?}", matches);
+    let mut engine = RadeEngine::from_rules(rule_set.retain_rules());
+    engine.compile_rules();
+    let matches = engine.eval_with_predicates(events)?;
+    println!("{}", matches);
     Ok(())
 }
