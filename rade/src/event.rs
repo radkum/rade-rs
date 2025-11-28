@@ -1,11 +1,11 @@
 mod serializer;
-use std::collections::HashMap;
-use std::{fs::read_to_string, hash::Hash};
+use std::{collections::HashMap, fs::read_to_string};
 
 use anyhow::anyhow;
 use serde::{Deserialize, Serialize};
+pub use serializer::EventSerialized;
 
-use crate::{FatString, Field, Result, Val};
+use crate::{FatString, Result, Val};
 
 #[derive(Debug, Serialize, Deserialize, Default)]
 pub struct Events(Vec<Event>);
@@ -28,7 +28,8 @@ impl Events {
             if path.is_file() {
                 let content = read_to_string(path)
                     .map_err(|err| anyhow!("Failed to read file {}: {:?}", path.display(), err))?;
-                let mut event = serde_yaml_bw::from_str::<Event>(&content)?;
+                let event_serialized = serde_yaml_bw::from_str::<EventSerialized>(&content)?;
+                let mut event = Event::from(event_serialized);
                 if event.name().is_none() {
                     event.set_name(path.file_stem().unwrap().to_string_lossy().as_ref());
                 }
@@ -86,12 +87,6 @@ impl Events {
         // Self::deserialize_from_bytes(&mut data)
         Ok(serde_yaml_bw::from_reader(io_reader)?)
     }
-
-    // pub(crate) fn deserialize_from_bytes(data: &mut Vec<u8>) -> Result<Self> {
-    //     let events: Events =
-    //         bincode::serde::decode_from_slice(&data, BIN_CONFIG)?.0;
-    //     Ok(events)
-    // }
 }
 
 #[derive(Debug, Clone)]
@@ -99,6 +94,7 @@ pub struct Event {
     numbers: HashMap<String, u64>,
     strings: HashMap<String, FatString>,
     string_lists: HashMap<String, Vec<FatString>>,
+    all: HashMap<String, Val>,
 }
 
 impl Event {
@@ -114,61 +110,23 @@ impl Event {
     }
 
     pub fn set_name(&mut self, name: &str) {
-        self.strings.insert("name".to_string(), FatString::from(name.to_string()));
+        self.strings
+            .insert("name".to_string(), FatString::from(name.to_string()));
     }
 
-    pub fn get_int_field(&self, field_name: &Field) -> Option<u64> {
-        self.numbers.get(field_name.as_str()).copied()
+    pub fn get_int_field(&self, field_name: &FatString) -> Option<u64> {
+        self.numbers.get(field_name.lowercased()).copied()
     }
 
-    pub fn get_str_field(&self, field_name: &Field) -> Option<&FatString> {
-        self.strings.get(field_name.as_str())
+    pub fn get_str_field(&self, field_name: &FatString) -> Option<&FatString> {
+        self.strings.get(field_name.lowercased())
     }
 
-    pub fn get_strlist_field(&self, field_name: &Field) -> Option<&Vec<FatString>> {
-        self.string_lists.get(field_name.as_str())
+    pub fn get_strlist_field(&self, field_name: &FatString) -> Option<&Vec<FatString>> {
+        self.string_lists.get(field_name.lowercased())
     }
 
-    // pub fn set_field(&mut self, field_name: &str, field_value: Val) {
-    //     self.fields.insert(field_name.to_string(), field_value);
-    // }
-}
-
-
-impl Event {
-    // pub fn new(
-    //     name: Option<String>,
-    //     pid: Option<u64>,
-    //     tid: Option<u64>,
-    //     file_name: Option<FatString>,
-    //     app_name: Option<FatString>,
-    //     content_name: Option<FatString>,
-    //     content: Option<FatString>,
-    //     session: Option<u64>,
-    //     request_number: Option<u64>,
-    // ) -> Self {
-    //     Self {
-    //         name,
-    //         pid,
-    //         tid,
-    //         file_name,
-    //         app_name,
-    //         content_name,
-    //         content_tokens: content.as_ref().map(|s| {
-    //             s.plain
-    //                 .split_ascii_whitespace()
-    //                 .filter_map(|token| {
-    //                     if !token.is_empty() {
-    //                         Some(FatString::from(token.to_string()))
-    //                     } else {
-    //                         None
-    //                     }
-    //                 })
-    //                 .collect::<Vec<FatString>>()
-    //         }),
-    //         content,
-    //         session,
-    //         request_number,
-    //     }
-    // }
+    pub fn get_field(&self, field_name: &FatString) -> Option<&Val> {
+        self.all.get(field_name.lowercased())
+    }
 }

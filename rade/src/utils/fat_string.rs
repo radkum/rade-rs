@@ -15,7 +15,7 @@ pub struct FatString {
     pub plain: String,
     pub case_insensitive: String,
     pub apostrophe_insensitive: String,
-    pub ca_insensitive: String,
+    pub ac_insensitive: String,
 }
 
 impl core::cmp::PartialEq for FatString {
@@ -71,12 +71,12 @@ impl From<String> for FatString {
     fn from(s: String) -> Self {
         let case_insensitive = s.to_lowercase();
         let apostrophe_insensitive = s.replace("'", "\"");
-        let ca_insensitive = apostrophe_insensitive.to_lowercase();
+        let ac_insensitive = apostrophe_insensitive.to_lowercase();
         Self {
             plain: s,
             case_insensitive,
             apostrophe_insensitive,
-            ca_insensitive,
+            ac_insensitive,
         }
     }
 }
@@ -85,7 +85,7 @@ impl FatString {
     pub fn choose<'a>(&'a self, comp_flag: &Option<InsensitiveFlag>) -> &'a str {
         if let Some(comp_flag) = comp_flag {
             match comp_flag {
-                InsensitiveFlag::CaseAndApostrophe => self.ca_insensitive.as_ref(),
+                InsensitiveFlag::CaseAndApostrophe => self.ac_insensitive.as_ref(),
                 InsensitiveFlag::Case => self.case_insensitive.as_ref(),
                 InsensitiveFlag::Apostrophe => self.apostrophe_insensitive.as_ref(),
             }
@@ -96,5 +96,9 @@ impl FatString {
 
     pub fn plain(&self) -> &str {
         &self.plain
+    }
+
+    pub fn lowercased(&self) -> &str {
+        &self.case_insensitive
     }
 }

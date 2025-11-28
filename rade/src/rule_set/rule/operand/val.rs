@@ -1,14 +1,16 @@
+mod field;
 mod int;
 mod int_list;
 mod serialization;
 mod str;
 mod str_list;
 
+pub use field::*;
 pub use int::*;
 pub use int_list::*;
+use serde_yaml_bw::Value as YamlValue;
 pub use str::*;
 pub use str_list::*;
-pub use serialization::Field;
 
 use crate::{Event, FatString, InsensitiveFlag};
 
@@ -66,42 +68,23 @@ trait Cast {
     }
 }
 
-trait CastLit {
-    fn u64_lit<'a>(&'a self) -> Option<u64> {
-        None
-    }
-    fn u64_list_lit<'a>(&'a self) -> Option<&'a Vec<u64>> {
-        None
-    }
-    fn str_lit<'a>(
-        &'a self,
-    ) -> Option<&'a FatString> {
-        None
-    }
-    fn str_list_lit<'a>(
-        &'a self,
-    ) -> Option<Vec<&'a FatString>> {
-        None
-    }
-}
-
-
-
 #[derive(Debug, PartialEq, Clone, Hash)]
 pub enum Val {
     Int(Int),
     IntList(IntList),
     Str(Str),
     StrList(StrList),
+    Field(Field),
 }
 
 impl Contains for Val {
-    fn contains<'a>(&self, elem: &Val, event: &Event, flag: &Option<InsensitiveFlag>) -> bool {
+    fn contains<'a>(&self, elem: &Val, event: &Event, comp_flag: &Option<InsensitiveFlag>) -> bool {
         match self {
-            Val::Int(val) => val.contains(elem, event, flag),
-            Val::IntList(val) => val.contains(elem, event, flag),
-            Val::Str(val) => val.contains(elem, event, flag),
-            Val::StrList(val) => val.contains(elem, event, flag),
+            Val::Int(val) => val.contains(elem, event, comp_flag),
+            Val::Str(val) => val.contains(elem, event, comp_flag),
+            Val::IntList(val) => val.contains(elem, event, comp_flag),
+            Val::StrList(val) => val.contains(elem, event, comp_flag),
+            Val::Field(field) => field.contains(elem, event, comp_flag),
         }
     }
 }
@@ -114,10 +97,11 @@ impl Eq for Val {
         comp_flag: &Option<InsensitiveFlag>,
     ) -> bool {
         match self {
-            Val::Int(int) => int.equal(elem, event, comp_flag),
+            Val::Int(i) => i.equal(elem, event, comp_flag),
             //Val::IntList(int_list) => int_list.equal(elem, event, comp_flag),
-            Val::Str(str) => str.equal(elem, event, comp_flag),
+            Val::Str(s) => s.equal(elem, event, comp_flag),
             //Val::StrList(str_list) => str_list.equal(elem, event, comp_flag),
+            Val::Field(field) => field.equal(elem, event, comp_flag),
             _ => false,
         }
     }
@@ -133,6 +117,7 @@ impl Eq for Val {
             //Val::IntList(int_list) => int_list.neq(elem, event, comp_flag),
             Val::Str(str) => str.neq(elem, event, comp_flag),
             //Val::StrList(str_list) => str_list.neq(elem, event, comp_flag),
+            Val::Field(field) => field.neq(elem, event, comp_flag),
             _ => false,
         }
     }
@@ -154,7 +139,8 @@ impl Cast for Val {
     ) -> Option<&'a str> {
         match self {
             Val::Str(str) => str.as_str(event, comp_flag),
-            Val::StrList(str) => str.as_str(event, comp_flag),
+            Val::StrList(str_list) => str_list.as_str(event, comp_flag),
+            Val::Field(f) => f.as_str(event, comp_flag),
             _ => None,
         }
     }
@@ -180,37 +166,22 @@ impl Cast for Val {
     }
 }
 
-impl CastLit for Val {
-    fn u64_lit<'a>(&'a self) -> Option<u64> {
-        match self {
-            Val::Int(int) => int.u64_lit(),
-            Val::IntList(int) => int.u64_lit(),
-            _ => None,
-        }
-    }
-
-    fn str_lit<'a>(&'a self) -> Option<&'a FatString> {
-        match self {
-            Val::Str(str) => str.str_lit(),
-            Val::StrList(str) => str.str_lit(),
-            _ => None,
-        }
-    }
-
-    fn u64_list_lit<'a>(&'a self) -> Option<&'a Vec<u64>> {
-        match self {
-            Val::Int(i) => i.u64_list_lit(),
-            Val::IntList(i) => i.u64_list_lit(),
-            _ => None,
-        }
-    }
-
-    fn str_list_lit<'a>(&'a self) -> Option<Vec<&'a FatString>> {
-        match self {
-            Val::Str(s) => s.str_list_lit(),
-            Val::StrList(s) => s.str_list_lit(),
-            _ => None,
+impl From<&YamlValue> for Val {
+    fn from(value: &YamlValue) -> Self {
+        match value {
+            YamlValue::Number(n) => Val::Int(Int(n.as_u64().unwrap())),
+            YamlValue::String(s) => Val::Str(Str(FatString::from(s))),
+            _ => todo!(),
         }
     }
 }
 
+impl From<&Val> for YamlValue {
+    fn from(value: &Val) -> Self {
+        match value {
+            Val::Int(i) => YamlValue::Number(i.0.into()),
+            Val::Str(s) => YamlValue::String(s.0.plain().to_string()),
+            _ => todo!(),
+        }
+    }
+}

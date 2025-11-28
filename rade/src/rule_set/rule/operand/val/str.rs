@@ -1,12 +1,19 @@
 use serde::{Deserialize, Serialize};
 
-use super::{Cast, CastLit, Eq, InsensitiveFlag, Val,Field};
+use super::{Cast, Eq, InsensitiveFlag, Val};
 use crate::{Event, FatString};
 
 #[derive(Debug, Deserialize, Serialize, PartialEq, Clone, Hash)]
-pub enum Str {
-    Lit(FatString),
-    Field(Field),
+pub struct Str(pub FatString);
+impl From<&str> for Str {
+    fn from(s: &str) -> Self {
+        Str(FatString::from(s))
+    }
+}
+impl From<String> for Str {
+    fn from(s: String) -> Self {
+        Str(FatString::from(s))
+    }
 }
 
 impl Str {
@@ -47,28 +54,10 @@ impl Str {
 }
 
 impl Cast for Str {
-    fn as_str<'a>(
-        &'a self,
-        event: &'a Event,
-        comp_flag: &Option<InsensitiveFlag>,
-    ) -> Option<&'a str> {
-        let fat_string = match self {
-            Self::Lit(s) => Some(s),
-            Self::Field(field_name) => event.get_str_field(field_name),
-        };
+    fn as_str<'a>(&'a self, _: &'a Event, comp_flag: &Option<InsensitiveFlag>) -> Option<&'a str> {
+        let fat_string = &self.0;
 
-        fat_string.map(|fat_string| fat_string.choose(comp_flag))
-    }
-}
-
-impl CastLit for Str {
-    fn str_lit<'a>(
-        &'a self,
-    ) -> Option<&'a FatString> {
-        match self {
-            Self::Lit(s) => Some(s),
-            Self::Field(_) => None,
-        }
+        Some(fat_string.choose(comp_flag))
     }
 }
 

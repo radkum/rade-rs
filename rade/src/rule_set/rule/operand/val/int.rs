@@ -1,29 +1,19 @@
 use serde::{Deserialize, Serialize};
 
-use super::{Cast, CastLit, Contains, Eq, InsensitiveFlag, Val, Field};
+use super::{Cast, Contains, Eq, InsensitiveFlag, Val};
 use crate::Event;
 
 #[derive(Debug, Deserialize, Serialize, PartialEq, Clone, Hash)]
-pub enum Int {
-    Lit(u64),
-    Field(Field),
-}
-
-impl Cast for Int {
-    fn as_u64<'a>(&'a self, event: &'a Event) -> Option<u64> {
-        match self {
-            Self::Lit(i) => Some(*i),
-            Self::Field(field_name) => event.get_int_field(field_name),
-        }
+pub struct Int(pub u64);
+impl From<u64> for Int {
+    fn from(i: u64) -> Self {
+        Int(i)
     }
 }
 
-impl CastLit for Int {
-    fn u64_lit<'a>(&'a self) -> Option<u64> {
-        match self {
-            Self::Lit(i) => Some(*i),
-            Self::Field(_) => None,
-        }
+impl Cast for Int {
+    fn as_u64<'a>(&'a self, _: &'a Event) -> Option<u64> {
+        Some(self.0)
     }
 }
 

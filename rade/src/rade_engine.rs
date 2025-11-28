@@ -1,8 +1,7 @@
 use std::collections::HashMap;
 
 use super::rule_set::Predicates;
-use crate::{Events, MatchedRules, Matches, Rules};
-use crate::Result;
+use crate::{Events, MatchedRules, Matches, Result, Rules};
 #[derive(Default)]
 pub struct RadeEngine {
     rules: Rules,
@@ -54,7 +53,11 @@ impl RadeEngine {
         Ok(matches)
     }
 
-    fn eval_one_event(&self, event: &crate::Event, predicates: &Predicates) -> Result<MatchedRules> {
+    fn eval_one_event(
+        &self,
+        event: &crate::Event,
+        predicates: &Predicates,
+    ) -> Result<MatchedRules> {
         let mut matched_rules = MatchedRules::new();
         let mut pred_results = HashMap::new();
 

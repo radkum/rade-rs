@@ -1,6 +1,6 @@
 #![allow(dead_code)]
-use std::{hash::Hash, str::FromStr};
-use std::collections::HashMap;
+use std::{collections::HashMap, str::FromStr};
+
 use anyhow::anyhow;
 use rade::*;
 type Result<T> = core::result::Result<T, Box<dyn core::error::Error>>;
@@ -9,38 +9,38 @@ fn create_event() {
     let map = HashMap::from([
         (
             "process_id".to_string(),
-            SerializedVal::Number(1234),
+            1234.into(),
         ),
         (
             "parent_process_id".to_string(),
-            SerializedVal::Number(5678),
+            5678.into(),
         ),
         (
             "process_path".to_string(),
-            SerializedVal::String("C:\\path\\to\\exe".to_string()),
+            "C:\\path\\to\\exe".into(),
         ),
         (
             "process_name".to_string(),
-            SerializedVal::String("powershell".to_string()),
+            "powershell".into(),
         ),
         (
             "script_name".to_string(),
-            SerializedVal::String("script.ps1".to_string()),
+            "script.ps1".into(),
         ),
         (
             "content".to_string(),
-            SerializedVal::String(r#""[Ref].Assembly.GetType("System.Management.Automation.AmsiUtils").GetField('amsiInitFailed','NonPublic,Static').SetValue($null,$true)""#.to_string()),
+            r#""[Ref].Assembly.GetType("System.Management.Automation.AmsiUtils").GetField('amsiInitFailed','NonPublic,Static').SetValue($null,$true)""#.into(),
         ),
         (
             "thread_id".to_string(),
-            SerializedVal::Number(4321),
+            4321.into(),
         ),
         (
             "logon_type".to_string(),
-            SerializedVal::Number(1),
+            1.into(),
         ),
     ]);
-    let event1 = Event::from(map);
+    let event1 = Event::from(EventSerialized::new(map));
     //let event2 = Event::new(Some(1234), Some(5678),
     // Some("C:\\path\\to\\exe".into()), Some("powershell".into()),
     // Some("script.ps1".into()),
@@ -90,16 +90,14 @@ pub fn serialize_ruleset_from_dir() -> Result<()> {
 fn create_rule() -> Rule {
     let condition = Operand::And(vec![
         Operand::Contains(
-            Val::Str(Str::Field("Content".into())),
-            Val::Str(Str::Lit(
-                "[Ref].Assembly.GetType('System.Management.Automation.AmsiUtils')".into(),
-            )),
+            Val::Field("Content".into()),
+            Val::Str("[Ref].Assembly.GetType('System.Management.Automation.AmsiUtils')".into()),
             Some(InsensitiveFlag::CaseAndApostrophe),
         )
         .into(),
         Operand::Contains(
-            Val::Str(Str::Field("Content".into())),
-            Val::Str(Str::Lit(".GetField('amsiInitFailed'".into())),
+            Val::Field("Content".into()),
+            Val::Str(".GetField('amsiInitFailed'".into()),
             Some(InsensitiveFlag::CaseAndApostrophe),
         )
         .into(),

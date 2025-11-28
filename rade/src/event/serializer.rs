@@ -1,15 +1,15 @@
 use serde::Serialize;
-use crate::event::HashMap;
+use serde_yaml_bw::Value as YamlValue;
 
 use super::{Event, FatString};
+use crate::event::HashMap;
 
 #[derive(serde::Deserialize, Serialize)]
-struct EventSerialized(HashMap<String, SerializedVal>);
-
-#[derive(serde::Deserialize, Serialize)]
-enum SerializedVal {
-    String(String),
-    Number(u64),
+pub struct EventSerialized(HashMap<String, YamlValue>);
+impl EventSerialized {
+    pub fn new(map: HashMap<String, YamlValue>) -> Self {
+        EventSerialized(map)
+    }
 }
 
 impl<'de> serde::Deserialize<'de> for Event {
@@ -24,40 +24,56 @@ impl<'de> serde::Deserialize<'de> for Event {
 
 impl From<&Event> for EventSerialized {
     fn from(event: &Event) -> Self {
-        let mut map: HashMap<String, SerializedVal> = HashMap::new();
-        for (key, value) in &event.numbers {
-            // Serialize each number field
-            map.insert(key.clone(), SerializedVal::Number(*value));
-        }
-        for (key, value) in &event.strings {
-            // Serialize each string field
-            map.insert(key.clone(), SerializedVal::String(value.plain.clone()));
-        }
-        Self(map)
+        Self(
+            event
+                .all
+                .iter()
+                .fold(
+                    HashMap::<String, YamlValue>::new(),
+                    |mut map, (key, val)| {
+                        let _ = map.insert(key.clone(), val.into());
+                        map
+                    },
+                )
+                .into(),
+        )
     }
 }
 
+impl From<EventSerialized> for Event {
+    fn from(serialized: EventSerialized) -> Self {
+        Event::from(&serialized)
+    }
+}
 impl From<&EventSerialized> for Event {
     fn from(serialized: &EventSerialized) -> Self {
+        let mut all = HashMap::new();
         let mut numbers = HashMap::new();
         let mut strings = HashMap::<String, FatString>::new();
         let mut string_lists = HashMap::<String, Vec<FatString>>::new();
 
         for (key, value) in serialized.0.iter() {
             if key == "content" {
-                if let SerializedVal::String(s) = &value {
+                if let YamlValue::String(s) = &value {
                     string_lists.insert(format!("{key}_tokens"), Event::tokenize(s));
                 }
             }
             match value {
-                SerializedVal::Number(n) => {let _ = numbers.insert(key.to_string(), *n);},
-                SerializedVal::String(s) => {let _ = strings.insert(key.to_string(), FatString::from(s));},
+                YamlValue::Number(n) => {
+                    let _ = numbers.insert(key.to_string(), n.as_u64().unwrap_or_default());
+                },
+                YamlValue::String(s) => {
+                    let _ = strings.insert(key.to_string(), FatString::from(s));
+                },
+                _ => todo!(),
             };
+            let _ = all.insert(key.to_string(), value.into());
         }
         Event {
             numbers,
             strings,
             string_lists,
+            all,
         }
     }
 }
