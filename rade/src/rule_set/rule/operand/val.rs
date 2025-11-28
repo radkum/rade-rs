@@ -8,8 +8,9 @@ pub use int::*;
 pub use int_list::*;
 pub use str::*;
 pub use str_list::*;
+pub use serialization::Field;
 
-use crate::{Event, InsensitiveFlag};
+use crate::{Event, FatString, InsensitiveFlag};
 
 pub trait Eq {
     fn equal<'a>(
@@ -64,6 +65,27 @@ trait Cast {
         None
     }
 }
+
+trait CastLit {
+    fn u64_lit<'a>(&'a self) -> Option<u64> {
+        None
+    }
+    fn u64_list_lit<'a>(&'a self) -> Option<&'a Vec<u64>> {
+        None
+    }
+    fn str_lit<'a>(
+        &'a self,
+    ) -> Option<&'a FatString> {
+        None
+    }
+    fn str_list_lit<'a>(
+        &'a self,
+    ) -> Option<Vec<&'a FatString>> {
+        None
+    }
+}
+
+
 
 #[derive(Debug, PartialEq, Clone, Hash)]
 pub enum Val {
@@ -157,3 +179,38 @@ impl Cast for Val {
         }
     }
 }
+
+impl CastLit for Val {
+    fn u64_lit<'a>(&'a self) -> Option<u64> {
+        match self {
+            Val::Int(int) => int.u64_lit(),
+            Val::IntList(int) => int.u64_lit(),
+            _ => None,
+        }
+    }
+
+    fn str_lit<'a>(&'a self) -> Option<&'a FatString> {
+        match self {
+            Val::Str(str) => str.str_lit(),
+            Val::StrList(str) => str.str_lit(),
+            _ => None,
+        }
+    }
+
+    fn u64_list_lit<'a>(&'a self) -> Option<&'a Vec<u64>> {
+        match self {
+            Val::Int(i) => i.u64_list_lit(),
+            Val::IntList(i) => i.u64_list_lit(),
+            _ => None,
+        }
+    }
+
+    fn str_list_lit<'a>(&'a self) -> Option<Vec<&'a FatString>> {
+        match self {
+            Val::Str(s) => s.str_list_lit(),
+            Val::StrList(s) => s.str_list_lit(),
+            _ => None,
+        }
+    }
+}
+

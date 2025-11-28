@@ -1,26 +1,30 @@
 use serde::{Deserialize, Serialize};
 
-use super::{FieldInt, FieldStr, FieldStrList, Int, IntList, Str, StrList, Val};
+use super::{Int, IntList, Str, StrList, Val};
+
+#[derive(Debug, PartialEq, Clone, Hash, Serialize, Deserialize)]
+pub struct Field(String);
+impl From<&str> for Field {
+    fn from(s: &str) -> Self {
+        Field(s.to_string())
+    }
+}
+
+impl Field {
+    pub fn as_str(&self) -> &str {
+        &self.0
+    }
+}
 
 #[derive(Debug, Deserialize, Serialize)]
 enum ValSerialized {
     Int(u64),
+    FieldInt(Field),
     IntList(Vec<u64>),
     Str(String),
+    FieldStr(Field),
     StrList(Vec<String>),
-    Field(FieldSerialized),
-}
-
-#[derive(Debug, Deserialize, Serialize)]
-enum FieldSerialized {
-    Pid,
-    Tid,
-    Session,
-    RequestNumber,
-    Content,
-    AppName,
-    FileName,
-    ContentTokens,
+    FieldStrList(Field),
 }
 
 impl<'de> serde::Deserialize<'de> for Val {
@@ -42,18 +46,9 @@ impl From<ValSerialized> for Val {
             ValSerialized::StrList(v) => {
                 Val::StrList(StrList::Lit(v.into_iter().map(|s| s.into()).collect()))
             },
-            ValSerialized::Field(field_ser) => match field_ser {
-                FieldSerialized::Pid => Val::Int(Int::Field(FieldInt::Pid)),
-                FieldSerialized::Tid => Val::Int(Int::Field(FieldInt::Tid)),
-                FieldSerialized::Session => Val::Int(Int::Field(FieldInt::Session)),
-                FieldSerialized::RequestNumber => Val::Int(Int::Field(FieldInt::RequestNumber)),
-                FieldSerialized::Content => Val::Str(Str::Field(FieldStr::Content)),
-                FieldSerialized::AppName => Val::Str(Str::Field(FieldStr::AppName)),
-                FieldSerialized::FileName => Val::Str(Str::Field(FieldStr::FileName)),
-                FieldSerialized::ContentTokens => {
-                    Val::StrList(StrList::Field(FieldStrList::ContentTokens))
-                },
-            },
+            ValSerialized::FieldInt(field) => Val::Int(Int::Field(field)),
+            ValSerialized::FieldStr(field) => Val::Str(Str::Field(field)),
+            ValSerialized::FieldStrList(field) => Val::StrList(StrList::Field(field)),
         }
     }
 }
@@ -69,20 +64,9 @@ impl serde::Serialize for Val {
             Val::StrList(StrList::Lit(v)) => {
                 ValSerialized::StrList(v.iter().map(|fs| fs.plain.clone()).collect())
             },
-            Val::Int(Int::Field(f)) => ValSerialized::Field(match f {
-                FieldInt::Pid => FieldSerialized::Pid,
-                FieldInt::Tid => FieldSerialized::Tid,
-                FieldInt::Session => FieldSerialized::Session,
-                FieldInt::RequestNumber => FieldSerialized::RequestNumber,
-            }),
-            Val::Str(Str::Field(f)) => ValSerialized::Field(match f {
-                FieldStr::Content => FieldSerialized::Content,
-                FieldStr::AppName => FieldSerialized::AppName,
-                FieldStr::FileName => FieldSerialized::FileName,
-            }),
-            Val::StrList(StrList::Field(f)) => ValSerialized::Field(match f {
-                FieldStrList::ContentTokens => FieldSerialized::ContentTokens,
-            }),
+            Val::Int(Int::Field(f)) => ValSerialized::FieldInt(f.clone()),
+            Val::Str(Str::Field(f)) => ValSerialized::FieldStr(f.clone()),
+            Val::StrList(StrList::Field(f)) => ValSerialized::FieldStrList(f.clone()),
         };
         val_ser.serialize(serializer)
     }

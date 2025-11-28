@@ -1,12 +1,46 @@
 #![allow(dead_code)]
-use std::str::FromStr;
-
+use std::{hash::Hash, str::FromStr};
+use std::collections::HashMap;
 use anyhow::anyhow;
 use rade::*;
 type Result<T> = core::result::Result<T, Box<dyn core::error::Error>>;
 
 fn create_event() {
-    let event1 = Event::new(Some("first_event".to_string()),Some(1234), Some(5678), Some("C:\\path\\to\\exe".into()), Some("powershell".into()), Some("script.ps1".into()), Some(r#""[Ref].Assembly.GetType("System.Management.Automation.AmsiUtils").GetField('amsiInitFailed','NonPublic,Static').SetValue($null,$true)""#.into()), Some(4321), Some(1));
+    let map = HashMap::from([
+        (
+            "process_id".to_string(),
+            SerializedVal::Number(1234),
+        ),
+        (
+            "parent_process_id".to_string(),
+            SerializedVal::Number(5678),
+        ),
+        (
+            "process_path".to_string(),
+            SerializedVal::String("C:\\path\\to\\exe".to_string()),
+        ),
+        (
+            "process_name".to_string(),
+            SerializedVal::String("powershell".to_string()),
+        ),
+        (
+            "script_name".to_string(),
+            SerializedVal::String("script.ps1".to_string()),
+        ),
+        (
+            "content".to_string(),
+            SerializedVal::String(r#""[Ref].Assembly.GetType("System.Management.Automation.AmsiUtils").GetField('amsiInitFailed','NonPublic,Static').SetValue($null,$true)""#.to_string()),
+        ),
+        (
+            "thread_id".to_string(),
+            SerializedVal::Number(4321),
+        ),
+        (
+            "logon_type".to_string(),
+            SerializedVal::Number(1),
+        ),
+    ]);
+    let event1 = Event::from(map);
     //let event2 = Event::new(Some(1234), Some(5678),
     // Some("C:\\path\\to\\exe".into()), Some("powershell".into()),
     // Some("script.ps1".into()),
@@ -56,7 +90,7 @@ pub fn serialize_ruleset_from_dir() -> Result<()> {
 fn create_rule() -> Rule {
     let condition = Operand::And(vec![
         Operand::Contains(
-            Val::Str(Str::Field(FieldStr::Content)),
+            Val::Str(Str::Field("Content".into())),
             Val::Str(Str::Lit(
                 "[Ref].Assembly.GetType('System.Management.Automation.AmsiUtils')".into(),
             )),
@@ -64,7 +98,7 @@ fn create_rule() -> Rule {
         )
         .into(),
         Operand::Contains(
-            Val::Str(Str::Field(FieldStr::Content)),
+            Val::Str(Str::Field("Content".into())),
             Val::Str(Str::Lit(".GetField('amsiInitFailed'".into())),
             Some(InsensitiveFlag::CaseAndApostrophe),
         )

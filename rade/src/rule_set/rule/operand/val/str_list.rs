@@ -1,17 +1,12 @@
 use serde::{Deserialize, Serialize};
 
-use super::{Cast, Contains, InsensitiveFlag, Val};
+use super::{Cast, CastLit, Contains, InsensitiveFlag, Val, Field};
 use crate::{Event, FatString};
-
-#[derive(Debug, Deserialize, Serialize, PartialEq, Clone, Hash)]
-pub enum FieldStrList {
-    ContentTokens,
-}
 
 #[derive(Debug, Deserialize, Serialize, PartialEq, Clone, Hash)]
 pub enum StrList {
     Lit(Vec<FatString>),
-    Field(FieldStrList),
+    Field(Field),
 }
 
 impl Cast for StrList {
@@ -22,9 +17,7 @@ impl Cast for StrList {
     ) -> Option<&'a str> {
         let list = match self {
             Self::Lit(s) => Some(s),
-            Self::Field(field) => match field {
-                FieldStrList::ContentTokens => event.content_tokens.as_ref(),
-            },
+            Self::Field(field) => event.get_strlist_field(field),
         };
 
         let list = list?;
@@ -42,9 +35,7 @@ impl Cast for StrList {
     ) -> Option<Vec<&'a str>> {
         let list = match self {
             Self::Lit(s) => Some(s),
-            Self::Field(field) => match field {
-                FieldStrList::ContentTokens => event.content_tokens.as_ref(),
-            },
+            Self::Field(field) => event.get_strlist_field(field),
         };
         let list = list?;
         if list.is_empty() {
@@ -52,6 +43,39 @@ impl Cast for StrList {
         }
 
         Some(list.iter().map(|fs| fs.choose(comp_flag)).collect())
+    }
+}
+
+impl CastLit for StrList {
+    fn str_lit<'a>(
+        &'a self,
+    ) -> Option<&'a FatString> {
+        let list = match self {
+            Self::Lit(s) => Some(s),
+            _ => None,
+        };
+
+        let list = list?;
+        if list.is_empty() {
+            return None;
+        }
+
+        Some(&list[0])
+    }
+
+    fn str_list_lit<'a>(
+        &'a self,
+    ) -> Option<Vec<&'a FatString>> {
+        let list = match self {
+            Self::Lit(s) => Some(s),
+            _ => None,
+        };
+        let list = list?;
+        if list.is_empty() {
+            return None;
+        }
+
+        Some(list.iter().map(|fs| fs).collect())
     }
 }
 

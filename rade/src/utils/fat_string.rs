@@ -93,4 +93,8 @@ impl FatString {
             self.plain.as_ref()
         }
     }
+
+    pub fn plain(&self) -> &str {
+        &self.plain
+    }
 }

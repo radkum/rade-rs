@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use super::{Cast, InsensitiveFlag, Val};
+use super::{Cast, CastLit, InsensitiveFlag, Val};
 use crate::{Event, rule_set::rule::operand::val::Contains};
 
 #[derive(Debug, Deserialize, Serialize, PartialEq, Clone, Hash)]
@@ -39,6 +39,21 @@ impl Cast for IntList {
         Some(&self.0)
     }
 }
+
+impl CastLit for IntList {
+    fn u64_lit<'a>(&'a self) -> Option<u64> {
+        if self.0.len() == 1 {
+            self.0[0].into()
+        } else {
+            None
+        }
+    }
+
+    fn u64_list_lit<'a>(&'a self) -> Option<&'a Vec<u64>> {
+        Some(&self.0)
+    }
+}
+
 impl Contains for IntList {
     fn contains(&self, elem: &Val, event: &Event, _: &Option<InsensitiveFlag>) -> bool {
         let Some(elem) = elem.as_u64(event) else {

@@ -122,7 +122,7 @@ condition: !And
             r#""[Ref].Assembly.GetType("System.Management.Automation.AmsiUtils").GetField('amsiInitFailed','NonPublic,Static').SetValue($null,$true)""#,
             Operand::And(vec![
                 Operand::Contains(
-                    Val::Str(Str::Field(FieldStr::Content)),
+                    Val::Str(Str::Field("Content".into())),
                     Val::Str(Str::Lit(
                         "[Ref].Assembly.GetType('System.Management.Automation.AmsiUtils')".into(),
                     )),
@@ -130,7 +130,7 @@ condition: !And
                 )
                 .into(),
                 Operand::Contains(
-                    Val::Str(Str::Field(FieldStr::Content)),
+                    Val::Str(Str::Field("Content".into())),
                     Val::Str(Str::Lit(".GetField('amsiInitFailed'".into())),
                     Some(InsensitiveFlag::CaseAndApostrophe),
                 )

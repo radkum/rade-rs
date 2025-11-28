@@ -1,36 +1,30 @@
 use serde::{Deserialize, Serialize};
 
-use super::{Cast, Contains, Eq, InsensitiveFlag, Val};
+use super::{Cast, CastLit, Contains, Eq, InsensitiveFlag, Val, Field};
 use crate::Event;
-
-#[derive(Debug, Deserialize, Serialize, PartialEq, Clone, Hash)]
-pub enum FieldInt {
-    Pid,
-    Tid,
-    Session,
-    RequestNumber,
-}
 
 #[derive(Debug, Deserialize, Serialize, PartialEq, Clone, Hash)]
 pub enum Int {
     Lit(u64),
-    Field(FieldInt),
+    Field(Field),
 }
 
 impl Cast for Int {
     fn as_u64<'a>(&'a self, event: &'a Event) -> Option<u64> {
         match self {
             Self::Lit(i) => Some(*i),
-            Self::Field(FieldInt::Pid) => event.pid,
-            Self::Field(FieldInt::Tid) => event.tid,
-            Self::Field(FieldInt::Session) => event.session,
-            Self::Field(FieldInt::RequestNumber) => event.request_number,
+            Self::Field(field_name) => event.get_int_field(field_name),
         }
     }
+}
 
-    // fn as_u64_list<'a>(&'a self, event: &'a Event) -> Option<&'a Vec<u64>> {
-    //     self.as_u64(event).map(|i| vec![i].as_ref())
-    // }
+impl CastLit for Int {
+    fn u64_lit<'a>(&'a self) -> Option<u64> {
+        match self {
+            Self::Lit(i) => Some(*i),
+            Self::Field(_) => None,
+        }
+    }
 }
 
 impl Eq for Int {

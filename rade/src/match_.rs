@@ -40,7 +40,7 @@ impl std::fmt::Display for Matches {
             writeln!(
                 f,
                 "\t{i}: \"{}\", Matched: {:?}",
-                event.name.as_deref().unwrap_or("Unnamed event"),
+                event.name().as_deref().unwrap_or("Unnamed event"),
                 matched_rules.0
             )?;
         }

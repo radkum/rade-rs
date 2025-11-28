@@ -1,19 +1,12 @@
 use serde::{Deserialize, Serialize};
 
-use super::{Cast, Eq, InsensitiveFlag, Val};
+use super::{Cast, CastLit, Eq, InsensitiveFlag, Val,Field};
 use crate::{Event, FatString};
-
-#[derive(Debug, Deserialize, Serialize, PartialEq, Clone, Hash)]
-pub enum FieldStr {
-    Content,
-    AppName,
-    FileName,
-}
 
 #[derive(Debug, Deserialize, Serialize, PartialEq, Clone, Hash)]
 pub enum Str {
     Lit(FatString),
-    Field(FieldStr),
+    Field(Field),
 }
 
 impl Str {
@@ -61,19 +54,22 @@ impl Cast for Str {
     ) -> Option<&'a str> {
         let fat_string = match self {
             Self::Lit(s) => Some(s),
-            Self::Field(field) => match field {
-                FieldStr::Content => event.content.as_ref(),
-                FieldStr::AppName => event.app_name.as_ref(),
-                FieldStr::FileName => event.file_name.as_ref(),
-            },
+            Self::Field(field_name) => event.get_str_field(field_name),
         };
 
         fat_string.map(|fat_string| fat_string.choose(comp_flag))
     }
+}
 
-    // fn as_str_list<'a>(&'a self, event: &'a Event, comp_flag: &Option<CompFlag>)
-    // -> Option<Vec<String>> {     self.as_str(event, comp_flag).map(|s|
-    // vec![s]) }
+impl CastLit for Str {
+    fn str_lit<'a>(
+        &'a self,
+    ) -> Option<&'a FatString> {
+        match self {
+            Self::Lit(s) => Some(s),
+            Self::Field(_) => None,
+        }
+    }
 }
 
 impl Eq for Str {
