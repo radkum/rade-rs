@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use super::Val;
+use super::{RadeRegex, Val};
 
 #[derive(Debug, Deserialize, Serialize)]
 enum ValSerialized {
@@ -9,6 +9,7 @@ enum ValSerialized {
     Str(String),
     StrList(Vec<String>),
     Field(String),
+    Regex(String),
 }
 
 impl<'de> serde::Deserialize<'de> for Val {
@@ -17,18 +18,19 @@ impl<'de> serde::Deserialize<'de> for Val {
         D: serde::Deserializer<'de>,
     {
         let val_helper = ValSerialized::deserialize(deserializer)?;
-        Ok(Val::from(val_helper))
+        Ok(Val::from(val_helper).map_err(serde::de::Error::custom)?)
     }
 }
 
-impl From<ValSerialized> for Val {
-    fn from(val_ser: ValSerialized) -> Self {
+impl Val {
+    fn from(val_ser: ValSerialized) -> Result<Self, Box<dyn std::error::Error>> {
         match val_ser {
-            ValSerialized::Int(i) => Val::Int(i.into()),
-            ValSerialized::IntList(v) => Val::IntList(v.into()),
-            ValSerialized::Str(s) => Val::Str(s.into()),
-            ValSerialized::StrList(v) => Val::StrList(v.into()),
-            ValSerialized::Field(f) => Val::Field(f.into()),
+            ValSerialized::Int(i) => Ok(Val::Int(i.into())),
+            ValSerialized::IntList(v) => Ok(Val::IntList(v.into())),
+            ValSerialized::Str(s) => Ok(Val::Str(s.into())),
+            ValSerialized::StrList(v) => Ok(Val::StrList(v.into())),
+            ValSerialized::Field(f) => Ok(Val::Field(f.into())),
+            ValSerialized::Regex(f) => Ok(Val::Regex(RadeRegex::from_str(&f)?)),
         }
     }
 }
@@ -45,6 +47,7 @@ impl serde::Serialize for Val {
                 ValSerialized::StrList(sl.0.iter().map(|fs| fs.plain().to_string()).collect())
             },
             Val::Field(f) => ValSerialized::Field(f.plain().to_string()),
+            Val::Regex(f) => ValSerialized::Regex(f.0.plain().to_string()),
         };
         val_ser.serialize(serializer)
     }

@@ -71,6 +71,8 @@ impl OperandContainer {
             Operand::StartsWith(val1, val2, flag) => val1.starts_with(val2, event, flag),
             Operand::EndsWith(val1, val2, flag) => val1.ends_with(val2, event, flag),
             Operand::Contains(val1, val2, flag) => val1.contains(val2, event, flag),
+            Operand::Match(field, regex, flag) => regex.match_(field, event, flag),
+            Operand::NotMatch(field, regex, flag) => regex.not_match(field, event, flag),
         }
     }
 
@@ -79,33 +81,7 @@ impl OperandContainer {
             return *cached_result;
         }
 
-        let res = match &self.op {
-            Operand::Or(operands) => {
-                let mut result = false;
-                for operand in operands {
-                    if operand.evaluate(event) {
-                        result = true;
-                        break;
-                    }
-                }
-                result
-            },
-            Operand::And(operands) => {
-                let mut result = true;
-                for operand in operands {
-                    if !operand.evaluate(event) {
-                        result = false;
-                        break;
-                    }
-                }
-                result
-            },
-            Operand::Eq(val1, val2, flag) => val1.equal(val2, event, flag),
-            Operand::Neq(val1, val2, flag) => val1.neq(val2, event, flag),
-            Operand::StartsWith(val1, val2, flag) => val1.starts_with(val2, event, flag),
-            Operand::EndsWith(val1, val2, flag) => val1.ends_with(val2, event, flag),
-            Operand::Contains(val1, val2, flag) => val1.contains(val2, event, flag),
-        };
+        let res = self.evaluate(event);
 
         cache.insert(self.hash(), res);
         res
@@ -147,6 +123,8 @@ pub enum Operand {
     StartsWith(Str, Str, #[serde(default)] Option<InsensitiveFlag>),
     EndsWith(Str, Str, #[serde(default)] Option<InsensitiveFlag>),
     Contains(Val, Val, #[serde(default)] Option<InsensitiveFlag>),
+    Match(Field, RadeRegex, #[serde(default)] Option<InsensitiveFlag>),
+    NotMatch(Field, RadeRegex, #[serde(default)] Option<InsensitiveFlag>),
 }
 
 impl Operand {

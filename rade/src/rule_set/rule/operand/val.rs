@@ -1,6 +1,7 @@
 mod field;
 mod int;
 mod int_list;
+mod regex;
 mod serialization;
 mod str;
 mod str_list;
@@ -8,6 +9,7 @@ mod str_list;
 pub use field::*;
 pub use int::*;
 pub use int_list::*;
+pub use regex::RadeRegex;
 use serde_yaml_bw::Value as YamlValue;
 pub use str::*;
 pub use str_list::*;
@@ -27,6 +29,26 @@ pub trait Eq {
     fn neq<'a>(
         &'a self,
         _elem: &Val,
+        _event: &'a Event,
+        _comp_flag: &Option<InsensitiveFlag>,
+    ) -> bool {
+        false
+    }
+}
+
+pub trait Match {
+    fn match_<'a>(
+        &'a self,
+        _elem: &Field,
+        _event: &'a Event,
+        _comp_flag: &Option<InsensitiveFlag>,
+    ) -> bool {
+        false
+    }
+
+    fn not_match<'a>(
+        &'a self,
+        _elem: &Field,
         _event: &'a Event,
         _comp_flag: &Option<InsensitiveFlag>,
     ) -> bool {
@@ -74,6 +96,7 @@ pub enum Val {
     IntList(IntList),
     Str(Str),
     StrList(StrList),
+    Regex(RadeRegex),
     Field(Field),
 }
 
@@ -85,6 +108,7 @@ impl Contains for Val {
             Val::IntList(val) => val.contains(elem, event, comp_flag),
             Val::StrList(val) => val.contains(elem, event, comp_flag),
             Val::Field(field) => field.contains(elem, event, comp_flag),
+            Val::Regex(_) => false,
         }
     }
 }
@@ -118,6 +142,32 @@ impl Eq for Val {
             Val::Str(str) => str.neq(elem, event, comp_flag),
             //Val::StrList(str_list) => str_list.neq(elem, event, comp_flag),
             Val::Field(field) => field.neq(elem, event, comp_flag),
+            _ => false,
+        }
+    }
+}
+
+impl Match for Val {
+    fn match_<'a>(
+        &'a self,
+        elem: &Field,
+        event: &'a Event,
+        comp_flag: &Option<InsensitiveFlag>,
+    ) -> bool {
+        match self {
+            Val::Regex(i) => i.match_(elem, event, comp_flag),
+            _ => false,
+        }
+    }
+
+    fn not_match<'a>(
+        &'a self,
+        elem: &Field,
+        event: &'a Event,
+        comp_flag: &Option<InsensitiveFlag>,
+    ) -> bool {
+        match self {
+            Val::Regex(i) => i.not_match(elem, event, comp_flag),
             _ => false,
         }
     }

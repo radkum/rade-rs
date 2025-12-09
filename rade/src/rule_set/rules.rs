@@ -34,7 +34,7 @@ impl Rules {
                     };
 
                     if let Err(err) = imp_from_dir(&rule.path(), rules) {
-                        println!(
+                        log::error!(
                             "Failed to read rule from path: {:?}, error: {:?}",
                             rule.path(),
                             err

@@ -21,7 +21,6 @@ fn main() -> Result<()> {
         )
     })?;
     let rule_set = RuleSet::deserialize(&mut std::fs::File::open("rade/test_data/ruleset.bin")?)?;
-
     println!("Loaded {} events", events.iter().count());
     println!("Loaded {} rules", rule_set.rules().iter().count());
     let mut engine = RadeEngine::from_rules(rule_set.retain_rules());

@@ -11,7 +11,7 @@ condition: !And
   - !Field Content
   - !Str '[Ref].Assembly.GetType(''System.Management.Automation.AmsiUtils'')'
   - CaseAndApostrophe
-- !Contains
+- !Match
   - !Field Content
-  - !Str .GetField('amsiInitFailed'
-  - CaseAndApostrophe
+  - !Regex GetField\('amsiInitFailed'.*?SetValue\(
+  - CaseInsensitive
