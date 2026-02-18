@@ -1,0 +1,172 @@
+WHITESPACE = _{ " " | "\t" | "\r" | "\n" }
+
+program = { SOI ~ expression ~ EOI }
+
+expression = { logical_or }
+
+logical_or  = { logical_and ~ ( OR_OP ~ logical_and )* }
+
+logical_and = { comparison ~ ( AND_OP ~ comparison )* }
+
+comparison = { unary ~ (COMP_OP ~ unary)? }
+
+//logical_and = { equality ~ ( AND_OP ~ equality )* }
+//equality = { comparison ~ (COMP_OP ~ comparison)* }
+//comparison = { addition ~ ( COMP_OP ~ addition )* }
+//addition = { multiplication ~ ( ADD_OP ~ multiplication )* }
+//multiplication = { unary ~ ( MUL_OP ~ unary )* }
+
+unary = { NOT_OP? ~ primary ~ postfix_op* }
+
+postfix_op = {
+    function_call
+    | element_access
+}
+
+////////////////////////////////////////////////////////////
+// 🔹 Primary Expressions
+////////////////////////////////////////////////////////////
+
+primary = {
+    literal
+    | identifier
+    | parenthesis_expression
+}
+
+parenthesis_expression = { "(" ~ expression ~ ")" }
+
+function_call = {
+    "(" ~ argument_list? ~ ")"
+}
+
+element_access = {
+    "[" ~ expression ~ "]"
+}
+
+argument_list = {
+    expression ~ ("," ~ expression)*
+}
+
+////////////////////////////////////////////////////////////
+// 🔢 String
+////////////////////////////////////////////////////////////
+string = @{ "'" ~ string_content* ~ "'" }
+string_content = _{ "''" | (!"'" ~ ANY)+ }
+
+////////////////////////////////////////////////////////////
+// 🔢 Numbers
+////////////////////////////////////////////////////////////
+number = @{ SUB_OP? ~ (float_literal | hex_literal | decimal_literal | octal_literal | binary_literal ) ~ integer_suffix? }
+float_literal = @{
+    (
+        ASCII_DIGIT+ ~ "." ~ ASCII_DIGIT* 
+        | "." ~ ASCII_DIGIT+
+    )
+    ~ float_mantis?
+    |
+    ASCII_DIGIT+ ~ float_mantis
+}
+float_mantis = {^"e" ~ ("+" | "-")? ~ ASCII_DIGIT+}
+
+// Decimal
+decimal_literal = { decimal_digit ~ (decimal_digit_or_underscore*)? }
+decimal_digit = { ASCII_DIGIT }
+decimal_digit_or_underscore = { "_" ~ ASCII_DIGIT | ASCII_DIGIT }
+
+// Hex
+hex_literal = { "0x" ~ hex_body }
+hex_body = { hex_digit ~ (hex_digit_or_underscore* ~ hex_digit)? }
+
+hex_digit = { ASCII_HEX_DIGIT }
+hex_digit_or_underscore = { "_" ~ hex_digit | hex_digit }
+
+// octal
+octal_literal = { "0o" ~ octal_body }
+octal_body = { octal_digit ~ (octal_digit_or_underscore* ~ octal_digit)? }
+octal_digit = { '0'..'7' }
+octal_digit_or_underscore = { "_" ~ octal_digit | octal_digit }
+
+// binary
+binary_literal  = { "0b" ~ binary_body }
+binary_body = { binary_digit ~ (binary_digit_or_underscore* ~ binary_digit)? }
+binary_digit = { "0" | "1" }
+binary_digit_or_underscore = { "_" ~ binary_digit | binary_digit }
+
+integer_suffix = {
+      "u8" | "u16" | "u32" | "u64" | "u128" | "usize"
+    | "i8" | "i16" | "i32" | "i64" | "i128" | "isize"
+}
+////////////////////////////////////////////////////////////
+// 🌐 CIDR IPv4
+////////////////////////////////////////////////////////////
+
+cidr = @{
+    ipv4 ~ "/" ~ prefix
+}
+
+ipv4 = {
+    octet ~ "." ~ octet ~ "." ~ octet ~ "." ~ octet
+}
+
+octet = @{
+    ASCII_DIGIT{1,3}
+}
+
+prefix = @{
+    ASCII_DIGIT{1,2}
+}
+
+////////////////////////////////////////////////////////////
+// 🔍 Regex Literal
+////////////////////////////////////////////////////////////
+
+regex = @{
+    "/" ~ regex_body ~ "/" ~ regex_flags?
+}
+
+regex_body = {
+    ( "\\/" | !" /" ~ ANY )*
+}
+
+regex_flags = @{
+    ("i" | "m" | "s")*
+}
+
+////////////////////////////////////////////////////////////
+// 🔢 Literals
+////////////////////////////////////////////////////////////
+literal = ${ string | number | cidr | regex }
+
+////////////////////////////////////////////////////////////
+// 🔤 Identifiers
+////////////////////////////////////////////////////////////
+
+identifier = @{
+    (ASCII_ALPHA | "_") ~ (ASCII_ALPHANUMERIC | "_")*
+}
+
+////////////////////////////////////////////////////////////
+// 🔧 Operators
+////////////////////////////////////////////////////////////
+
+ADD_OP = _{ "+" | "-" }
+MUL_OP = _{ "*" | "/" }
+
+COMP_OP  = _{ EQ | NEQ | IEQ | AEQ | AIEQ | GE | LE | GT | LT }
+EQ = { "==" }
+NEQ = { "!=" }
+IEQ = { "~=" }
+AEQ = { "^=" }
+AIEQ = { "^~=" }
+GE = { ">=" }
+LE = { "<=" }
+GT = { ">" }
+LT = { "<" }
+
+//INEQ = { "~!=" }
+
+AND_OP = _{ "&&" }
+OR_OP  = _{ "||" }
+
+NOT_OP = _{ "!" }
+SUB_OP = _{ "-" }

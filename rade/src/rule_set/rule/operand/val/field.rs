@@ -1,10 +1,10 @@
 use serde::{Deserialize, Serialize};
 
 use super::{Cast, Contains, Eq, InsensitiveFlag, Val};
-use crate::{Event, FatString};
+use crate::{Event, FatString, Result, rule_set::rule::operand::val::Compare};
 
 #[derive(Debug, PartialEq, Clone, Hash, Serialize, Deserialize)]
-pub struct Field(FatString);
+pub struct Field(pub FatString);
 impl From<String> for Field {
     fn from(s: String) -> Self {
         Field::new(s)
@@ -93,6 +93,22 @@ impl Contains for Field {
             val.contains(elem, event, comp_flag)
         } else {
             false
+        }
+    }
+}
+
+impl Compare for Field {
+    fn ncmp<'a>(
+        &'a self,
+        elem: &super::Num,
+        event: &'a Event,
+        comparator: &super::Comparator,
+    ) -> Result<bool> {
+        if let Some(val) = event.get_field(&self.0) {
+            let num = val.as_num()?;
+            num.ncmp(elem, event, comparator)
+        } else {
+            Ok(false)
         }
     }
 }
