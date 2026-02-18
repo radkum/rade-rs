@@ -6,7 +6,7 @@ use std::{
 
 use serde::{Deserialize, Serialize};
 pub use val::{Cast, Comparator, Val};
-use val::{Compare, Contains, Eq, Num, Str};
+use val::{Compare, Contains, Eq, Field, Match, Num, RadeRegex, Str};
 
 use crate::{Event, InsensitiveFlag};
 
@@ -86,10 +86,6 @@ impl OperandContainer {
         }
 
         let res = self.evaluate(event);
-            Operand::Ncmp(val1, val2, comparator) => {
-                val1.ncmp(val2, event, comparator).unwrap_or(false)
-            },
-
         cache.insert(self.hash(), res);
         res
     }

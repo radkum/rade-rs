@@ -32,7 +32,7 @@ impl Val {
             ValSerialized::StrList(v) => Ok(Val::StrList(v.into())),
             ValSerialized::Field(f) => Ok(Val::Field(f.into())),
             ValSerialized::Regex(f) => Ok(Val::Regex(RadeRegex::from_str(&f)?)),
-            ValSerialized::Float(f) => Val::Float(f.into()),
+            ValSerialized::Float(f) => Ok(Val::Float(f.into())),
         }
     }
 }
