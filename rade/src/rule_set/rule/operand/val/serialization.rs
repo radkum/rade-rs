@@ -6,6 +6,7 @@ use super::Val;
 enum ValSerialized {
     Int(u64),
     IntList(Vec<u64>),
+    Float(f64),
     Str(String),
     StrList(Vec<String>),
     Field(String),
@@ -29,6 +30,7 @@ impl From<ValSerialized> for Val {
             ValSerialized::Str(s) => Val::Str(s.into()),
             ValSerialized::StrList(v) => Val::StrList(v.into()),
             ValSerialized::Field(f) => Val::Field(f.into()),
+            ValSerialized::Float(f) => Val::Float(f.into()),
         }
     }
 }
@@ -40,6 +42,7 @@ impl serde::Serialize for Val {
         let val_ser = match self {
             Val::Int(i) => ValSerialized::Int(i.0),
             Val::IntList(il) => ValSerialized::IntList(il.0.clone()),
+            Val::Float(f) => ValSerialized::Float(f.0 as f64),
             Val::Str(s) => ValSerialized::Str(s.0.plain().to_string()),
             Val::StrList(sl) => {
                 ValSerialized::StrList(sl.0.iter().map(|fs| fs.plain().to_string()).collect())

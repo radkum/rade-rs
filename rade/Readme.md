@@ -51,3 +51,10 @@ RADE is built to empower security analysts, malware researchers, and endpoint pr
 1. Clone the repository:  
    ```bash
    git clone https://github.com/radkum/rade.git
+
+
+# TODO
+- add single predicate (implement bool)
+- add functions 
+- add methods
+- solve todos

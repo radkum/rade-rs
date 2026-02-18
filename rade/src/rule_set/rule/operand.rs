@@ -5,7 +5,8 @@ use std::{
 };
 
 use serde::{Deserialize, Serialize};
-pub use val::*;
+pub use val::{Cast, Comparator, Val};
+use val::{Compare, Contains, Eq, Num, Str};
 
 use crate::{Event, InsensitiveFlag};
 
@@ -68,6 +69,9 @@ impl OperandContainer {
             },
             Operand::Eq(val1, val2, flag) => val1.equal(val2, event, flag),
             Operand::Neq(val1, val2, flag) => val1.neq(val2, event, flag),
+            Operand::Ncmp(val1, val2, coparator) => {
+                val1.ncmp(val2, event, coparator).unwrap_or(false)
+            },
             Operand::StartsWith(val1, val2, flag) => val1.starts_with(val2, event, flag),
             Operand::EndsWith(val1, val2, flag) => val1.ends_with(val2, event, flag),
             Operand::Contains(val1, val2, flag) => val1.contains(val2, event, flag),
@@ -102,6 +106,9 @@ impl OperandContainer {
             },
             Operand::Eq(val1, val2, flag) => val1.equal(val2, event, flag),
             Operand::Neq(val1, val2, flag) => val1.neq(val2, event, flag),
+            Operand::Ncmp(val1, val2, comparator) => {
+                val1.ncmp(val2, event, comparator).unwrap_or(false)
+            },
             Operand::StartsWith(val1, val2, flag) => val1.starts_with(val2, event, flag),
             Operand::EndsWith(val1, val2, flag) => val1.ends_with(val2, event, flag),
             Operand::Contains(val1, val2, flag) => val1.contains(val2, event, flag),
@@ -144,6 +151,7 @@ pub enum Operand {
     Or(Vec<OperandContainer>),
     Eq(Val, Val, #[serde(default)] Option<InsensitiveFlag>),
     Neq(Val, Val, #[serde(default)] Option<InsensitiveFlag>),
+    Ncmp(Num, Num, Comparator),
     StartsWith(Str, Str, #[serde(default)] Option<InsensitiveFlag>),
     EndsWith(Str, Str, #[serde(default)] Option<InsensitiveFlag>),
     Contains(Val, Val, #[serde(default)] Option<InsensitiveFlag>),

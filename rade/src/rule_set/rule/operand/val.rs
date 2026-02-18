@@ -1,18 +1,22 @@
 mod field;
+mod float;
 mod int;
 mod int_list;
+mod num;
 mod serialization;
 mod str;
 mod str_list;
 
 pub use field::*;
+pub use float::*;
 pub use int::*;
 pub use int_list::*;
+pub use num::{Comparator, Num};
 use serde_yaml_bw::Value as YamlValue;
 pub use str::*;
 pub use str_list::*;
 
-use crate::{Event, FatString, InsensitiveFlag};
+use crate::{Event, FatString, InsensitiveFlag, Result};
 
 pub trait Eq {
     fn equal<'a>(
@@ -45,13 +49,17 @@ pub trait Contains {
     }
 }
 
-trait Cast {
+pub trait Cast {
     fn as_u64<'a>(&'a self, _event: &'a Event) -> Option<u64> {
         None
     }
     fn as_u64_list<'a>(&'a self, _event: &'a Event) -> Option<&'a Vec<u64>> {
         None
     }
+    fn as_f64<'a>(&'a self, _event: &'a Event) -> Option<f64> {
+        None
+    }
+
     fn as_str<'a>(
         &'a self,
         _event: &'a Event,
@@ -68,19 +76,37 @@ trait Cast {
     }
 }
 
+pub trait Compare {
+    fn ncmp<'a>(&'a self, _elem: &Num, _event: &'a Event, _coparator: &Comparator) -> Result<bool> {
+        Err(format!("Not a number").into())
+    }
+}
+
 #[derive(Debug, PartialEq, Clone, Hash)]
 pub enum Val {
     Int(Int),
     IntList(IntList),
+    Float(Float),
     Str(Str),
     StrList(StrList),
     Field(Field),
 }
 
+impl Val {
+    pub fn as_num<'a>(&'a self) -> Result<Num> {
+        match self {
+            Val::Int(int) => Ok(Num::Int(int.clone())),
+            Val::Float(float) => Ok(Num::Float(float.clone())),
+            Val::Field(field) => Ok(Num::Field(field.clone())),
+            _ => Err(format!("Not a number: {:?}", self).into()),
+        }
+    }
+}
 impl Contains for Val {
     fn contains<'a>(&self, elem: &Val, event: &Event, comp_flag: &Option<InsensitiveFlag>) -> bool {
         match self {
             Val::Int(val) => val.contains(elem, event, comp_flag),
+            Val::Float(val) => val.contains(elem, event, comp_flag),
             Val::Str(val) => val.contains(elem, event, comp_flag),
             Val::IntList(val) => val.contains(elem, event, comp_flag),
             Val::StrList(val) => val.contains(elem, event, comp_flag),
@@ -98,6 +124,7 @@ impl Eq for Val {
     ) -> bool {
         match self {
             Val::Int(i) => i.equal(elem, event, comp_flag),
+            Val::Float(f) => f.equal(elem, event, comp_flag),
             //Val::IntList(int_list) => int_list.equal(elem, event, comp_flag),
             Val::Str(s) => s.equal(elem, event, comp_flag),
             //Val::StrList(str_list) => str_list.equal(elem, event, comp_flag),
@@ -114,6 +141,7 @@ impl Eq for Val {
     ) -> bool {
         match self {
             Val::Int(int) => int.neq(elem, event, comp_flag),
+            Val::Float(float) => float.neq(elem, event, comp_flag),
             //Val::IntList(int_list) => int_list.neq(elem, event, comp_flag),
             Val::Str(str) => str.neq(elem, event, comp_flag),
             //Val::StrList(str_list) => str_list.neq(elem, event, comp_flag),
@@ -128,6 +156,15 @@ impl Cast for Val {
         match self {
             Val::Int(int) => int.as_u64(event),
             Val::IntList(int) => int.as_u64(event),
+            Val::Float(float) => float.as_u64(event),
+            _ => None,
+        }
+    }
+
+    fn as_f64<'a>(&'a self, event: &'a Event) -> Option<f64> {
+        match self {
+            Val::Int(int) => int.as_f64(event),
+            Val::Float(float) => float.as_f64(event),
             _ => None,
         }
     }
