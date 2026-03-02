@@ -4,7 +4,7 @@ use anyhow::anyhow;
 use serde::{Deserialize, Serialize};
 
 use super::Rule;
-use crate::Result;
+use crate::RadeResult;
 #[derive(Deserialize, Serialize, Default, Debug)]
 pub struct Rules(Vec<Rule>);
 impl Rules {
@@ -17,8 +17,8 @@ impl Rules {
     }
 
     #[cfg(feature = "std")]
-    pub fn from_dir(path: &std::path::Path) -> Result<Self> {
-        fn imp_from_dir(path: &std::path::Path, rules: &mut Rules) -> Result<()> {
+    pub fn from_dir(path: &std::path::Path) -> RadeResult<Self> {
+        fn imp_from_dir(path: &std::path::Path, rules: &mut Rules) -> RadeResult<()> {
             if path.is_file() {
                 let mut file = std::fs::File::open(path)?;
                 let content = read_to_string(&mut file)

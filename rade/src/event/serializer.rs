@@ -48,31 +48,56 @@ impl From<EventSerialized> for Event {
 impl From<&EventSerialized> for Event {
     fn from(serialized: &EventSerialized) -> Self {
         let mut all = HashMap::new();
+        let mut bools = HashMap::new();
         let mut numbers = HashMap::new();
         let mut strings = HashMap::<String, FatString>::new();
         let mut string_lists = HashMap::<String, Vec<FatString>>::new();
+        let mut number_lists = HashMap::<String, Vec<u64>>::new();
 
         for (key, value) in serialized.0.iter() {
-            if key == "content" {
-                if let YamlValue::String(s) = &value {
-                    string_lists.insert(format!("{key}_tokens"), Event::tokenize(s));
-                }
-            }
             match value {
+                YamlValue::Bool(n) => {
+                    let _ = bools.insert(key.to_string(), *n);
+                },
                 YamlValue::Number(n) => {
                     let _ = numbers.insert(key.to_string(), n.as_u64().unwrap_or_default());
                 },
                 YamlValue::String(s) => {
                     let _ = strings.insert(key.to_string(), FatString::from(s));
                 },
+                YamlValue::Sequence(seq) => {
+                    let mut all_numbers = true;
+                    for item in seq.iter() {
+                        let YamlValue::Number(n) = item else{
+                            all_numbers = false;
+                            break;
+                        };
+                    }
+                    if all_numbers {
+                        let int_list = seq
+                            .iter()
+                            .filter_map(|item| item.as_u64())
+                            .collect::<Vec<u64>>();
+                        let _ = number_lists.insert(key.to_string(), int_list);
+                    } else {
+                        let str_list = seq
+                            .iter()
+                            .filter_map(|item| item.as_str().map(|s| FatString::from(s.to_string())))
+                            .collect::<Vec<FatString>>();
+                        let _ = string_lists.insert(key.to_string(), str_list);
+                    }
+                    
+                },
                 _ => todo!(),
             };
             let _ = all.insert(key.to_string(), value.into());
         }
         Event {
+            bools,
             numbers,
             strings,
             string_lists,
+            number_lists,
             all,
         }
     }

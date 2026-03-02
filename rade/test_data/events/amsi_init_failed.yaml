@@ -5,5 +5,6 @@ file_name: C:\path\to\exe
 app_name: powershell
 content_name: script.ps1
 content: '"[Ref].Assembly.GetType("System.Management.Automation.AmsiUtils").GetField(''amsiInitFailed'',''NonPublic,Static'').SetValue($null,$true)"'
+content_tokens: ["Ref", ".Assembly.GetType", "System.Management.Automation.AmsiUtils", ".GetField", "amsiInitFailed", "NonPublic", "Static", ".SetValue", "null", "true"]
 session: 4321
 request_number: 1

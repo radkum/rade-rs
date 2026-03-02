@@ -11,7 +11,7 @@ use serde::{Deserialize, Serialize};
 use sha2::Digest;
 use thiserror_no_std::Error;
 
-pub type Result<T> = core::result::Result<T, Box<dyn core::error::Error>>;
+pub type RadeResult<T> = core::result::Result<T, Box<dyn core::error::Error>>;
 pub type ShaResult<T> = core::result::Result<T, ShaError>;
 pub(crate) const BIN_CONFIG: Configuration<LittleEndian, Fixint, NoLimit> =
     bincode::config::legacy();

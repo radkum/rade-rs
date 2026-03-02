@@ -5,7 +5,7 @@ use anyhow::anyhow;
 use serde::{Deserialize, Serialize};
 pub use serializer::EventSerialized;
 
-use crate::{FatString, Result, Val};
+use crate::{FatString, RadeResult, Val};
 
 #[derive(Debug, Serialize, Deserialize, Default)]
 pub struct Events(Vec<Event>);
@@ -23,8 +23,8 @@ impl Events {
     }
 
     #[cfg(feature = "std")]
-    pub fn from_dir(path: &std::path::Path) -> Result<Self> {
-        fn imp_from_dir(path: &std::path::Path, events: &mut Events) -> Result<()> {
+    pub fn from_dir(path: &std::path::Path) -> RadeResult<Self> {
+        fn imp_from_dir(path: &std::path::Path, events: &mut Events) -> RadeResult<()> {
             if path.is_file() {
                 let content = read_to_string(path)
                     .map_err(|err| anyhow!("Failed to read file {}: {:?}", path.display(), err))?;
@@ -70,7 +70,7 @@ impl Events {
     }
 
     #[cfg(feature = "std")]
-    pub fn serialize<W: std::io::Write>(&self, out: W) -> Result<()> {
+    pub fn serialize<W: std::io::Write>(&self, out: W) -> RadeResult<()> {
         // let data = self.serialize_to_bytes()?;
         // out.write_all(&data)?;
         Ok(serde_yaml_bw::to_writer(out, self)?)
@@ -81,7 +81,7 @@ impl Events {
     // }
 
     #[cfg(feature = "std")]
-    pub fn deserialize<R: std::io::Read>(io_reader: R) -> Result<Self> {
+    pub fn deserialize<R: std::io::Read>(io_reader: R) -> RadeResult<Self> {
         // let mut data = vec![];
         // let _size = io_reader.read_to_end(&mut data)?;
         // Self::deserialize_from_bytes(&mut data)
@@ -92,8 +92,10 @@ impl Events {
 #[derive(Debug, Clone)]
 pub struct Event {
     numbers: HashMap<String, u64>,
+    bools: HashMap<String, bool>,
     strings: HashMap<String, FatString>,
     string_lists: HashMap<String, Vec<FatString>>,
+    number_lists: HashMap<String, Vec<u64>>,
     all: HashMap<String, Val>,
 }
 
@@ -114,19 +116,27 @@ impl Event {
             .insert("name".to_string(), FatString::from(name.to_string()));
     }
 
-    pub fn get_int_field(&self, field_name: &FatString) -> Option<u64> {
-        self.numbers.get(field_name.lowercased()).copied()
+    pub fn get_int_field(&self, field_name: &FatString) -> RadeResult<u64> {
+        self.numbers.get(field_name.lowercased()).copied().ok_or_else(|| format!("Int field not found").into())
     }
 
-    pub fn get_str_field(&self, field_name: &FatString) -> Option<&FatString> {
-        self.strings.get(field_name.lowercased())
+    pub fn get_bool_field(&self, field_name: &FatString) -> RadeResult<bool> {
+        self.bools.get(field_name.lowercased()).copied().ok_or_else(|| format!("Bool field not found").into())
     }
 
-    pub fn get_strlist_field(&self, field_name: &FatString) -> Option<&Vec<FatString>> {
-        self.string_lists.get(field_name.lowercased())
+    pub fn get_str_field(&self, field_name: &FatString) -> RadeResult<&FatString> {
+        self.strings.get(field_name.lowercased()).ok_or_else(|| format!("Str field not found").into())
     }
 
-    pub fn get_field(&self, field_name: &FatString) -> Option<&Val> {
-        self.all.get(field_name.lowercased())
+    pub fn get_strlist_field(&self, field_name: &FatString) -> RadeResult<&Vec<FatString>> {
+        self.string_lists.get(field_name.lowercased()).ok_or_else(|| format!("Str list not found").into())
+    }
+
+    pub fn get_intlist_field(&self, field_name: &FatString) -> RadeResult<&Vec<u64>> {
+        self.number_lists.get(field_name.lowercased()).ok_or_else(|| format!("Int list not found").into())
+    }
+
+    pub fn get_field(&self, field_name: &FatString) -> RadeResult<&Val> {
+        self.all.get(field_name.lowercased()).ok_or_else(|| format!("Field not found").into())
     }
 }

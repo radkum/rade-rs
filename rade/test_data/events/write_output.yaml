@@ -5,5 +5,6 @@ file_name: C:\path\to\exe
 app_name: powershell
 content_name: script1.ps1
 content: 'Write-Output "easdf"'
+content_tokens: ["Write-Output", "easdf"]
 session: 4321
 request_number: 1

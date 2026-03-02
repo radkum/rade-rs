@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use super::rule_set::Predicates;
-use crate::{Events, MatchedRules, Matches, Result, Rules};
+use crate::{Events, MatchedRules, Matches, RadeResult, Rules};
 #[derive(Default)]
 pub struct RadeEngine {
     rules: Rules,
@@ -40,7 +40,7 @@ impl RadeEngine {
         matches
     }
 
-    pub fn eval_with_predicates(&mut self, events: Events) -> Result<Matches> {
+    pub fn eval_with_predicates(&mut self, events: Events) -> RadeResult<Matches> {
         let mut matches = Matches::default();
         let Some(predicates) = &self.predicates else {
             Err("Predicates not compiled. Call compile_rules() before eval_with_predicates().")?
@@ -57,7 +57,7 @@ impl RadeEngine {
         &self,
         event: &crate::Event,
         predicates: &Predicates,
-    ) -> Result<MatchedRules> {
+    ) -> RadeResult<MatchedRules> {
         let mut matched_rules = MatchedRules::new();
         let mut pred_results = HashMap::new();
 

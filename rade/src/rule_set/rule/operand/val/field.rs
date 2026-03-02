@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 
 use super::{Cast, Contains, Eq, InsensitiveFlag, Val};
-use crate::{Event, FatString, Result, rule_set::rule::operand::val::Compare};
+use crate::{Event, FatString, RadeResult, rule_set::rule::operand::val::Compare};
 
 #[derive(Debug, PartialEq, Clone, Hash, Serialize, Deserialize)]
 pub struct Field(pub FatString);
@@ -31,26 +31,30 @@ impl Cast for Field {
         &'a self,
         event: &'a Event,
         comp_flag: &Option<InsensitiveFlag>,
-    ) -> Option<&'a str> {
-        event.get_str_field(&self.0).map(|fs| fs.choose(comp_flag))
+    ) -> RadeResult<&'a str> {
+        let str_field = event.get_str_field(&self.0)?;
+        Ok(str_field.choose(comp_flag))
     }
 
     fn as_str_list<'a>(
         &'a self,
         event: &'a Event,
         comp_flag: &Option<InsensitiveFlag>,
-    ) -> Option<Vec<&'a str>> {
-        event
-            .get_strlist_field(&self.0)
-            .map(|fs| fs.iter().map(|s| s.choose(comp_flag)).collect())
+    ) -> RadeResult<Vec<&'a str>> {
+        let str_list = event.get_strlist_field(&self.0)?;
+        Ok(str_list.iter().map(|s| s.choose(comp_flag)).collect())
     }
 
-    fn as_u64<'a>(&'a self, event: &'a Event) -> Option<u64> {
+    fn as_u64<'a>(&'a self, event: &'a Event) -> RadeResult<u64> {
         event.get_int_field(&self.0)
     }
 
-    fn as_u64_list<'a>(&'a self, _event: &'a Event) -> Option<&'a Vec<u64>> {
-        todo!()
+    fn as_bool<'a>(&'a self, event: &'a Event) -> RadeResult<bool> {
+        event.get_bool_field(&self.0)
+    }
+
+    fn as_u64_list<'a>(&'a self, event: &'a Event) -> RadeResult<&'a Vec<u64>> {
+        event.get_intlist_field(&self.0)
     }
 }
 
@@ -60,12 +64,9 @@ impl Eq for Field {
         elem: &Val,
         event: &'a Event,
         comp_flag: &Option<InsensitiveFlag>,
-    ) -> bool {
-        if let Some(val) = event.get_field(&self.0) {
-            val.equal(elem, event, comp_flag)
-        } else {
-            false
-        }
+    ) -> RadeResult<bool> {
+        let val = event.get_field(&self.0)?;
+        val.equal(elem, event, comp_flag)
     }
 
     fn neq<'a>(
@@ -73,12 +74,9 @@ impl Eq for Field {
         elem: &Val,
         event: &'a Event,
         comp_flag: &Option<InsensitiveFlag>,
-    ) -> bool {
-        if let Some(val) = event.get_field(&self.0) {
-            val.neq(elem, event, comp_flag)
-        } else {
-            false
-        }
+    ) -> RadeResult<bool> {
+        let val = event.get_field(&self.0)?;
+        val.neq(elem, event, comp_flag)
     }
 }
 
@@ -88,27 +86,21 @@ impl Contains for Field {
         elem: &Val,
         event: &crate::Event,
         comp_flag: &Option<InsensitiveFlag>,
-    ) -> bool {
-        if let Some(val) = event.get_field(&self.0) {
-            val.contains(elem, event, comp_flag)
-        } else {
-            false
-        }
+    ) -> RadeResult<bool> {
+        let val = event.get_field(&self.0)?;
+        val.contains(elem, event, comp_flag)
     }
 }
 
 impl Compare for Field {
-    fn ncmp<'a>(
+    fn cmp<'a>(
         &'a self,
         elem: &super::Num,
         event: &'a Event,
         comparator: &super::Comparator,
-    ) -> Result<bool> {
-        if let Some(val) = event.get_field(&self.0) {
-            let num = val.as_num()?;
-            num.ncmp(elem, event, comparator)
-        } else {
-            Ok(false)
-        }
+    ) -> RadeResult<bool> {
+        let val = event.get_field(&self.0)?;
+        let num = val.clone().into_num()?;
+        num.cmp(elem, event, comparator)
     }
 }

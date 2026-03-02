@@ -2,7 +2,7 @@ use pest::Parser;
 use pest_derive::Parser;
 
 use super::{Cast, Comparator, Condition, Operand, OperandContainer, Val};
-use crate::{InsensitiveFlag, Result};
+use crate::{InsensitiveFlag, RadeResult};
 
 type PestError = pest::error::Error<Rule>;
 type Pair<'i> = ::pest::iterators::Pair<'i, Rule>;
@@ -31,20 +31,20 @@ macro_rules! check_rule {
 pub struct ConditionParser;
 
 impl ConditionParser {
-    pub fn parse_condition(input: &str) -> Result<Condition> {
+    pub fn parse_condition(input: &str) -> RadeResult<Condition> {
         let mut pairs = Self::parse(Rule::program, input)?;
         let program_pair = pairs.next().unwrap();
         let expression_token = program_pair.into_inner().next().unwrap();
         Self::parse_expression(expression_token)
     }
 
-    fn parse_expression(token: Pair) -> Result<OperandContainer> {
+    fn parse_expression(token: Pair) -> RadeResult<OperandContainer> {
         check_rule!(token, Rule::expression);
         let inner = token.into_inner().next().unwrap();
         Self::parse_logical_or(inner)
     }
 
-    fn parse_logical_or(token: Pair) -> Result<OperandContainer> {
+    fn parse_logical_or(token: Pair) -> RadeResult<OperandContainer> {
         check_rule!(token, Rule::logical_or);
         let pairs = token.into_inner();
         let mut logical_ors = Vec::new();
@@ -59,7 +59,7 @@ impl ConditionParser {
         }
     }
 
-    fn parse_logical_and(token: Pair) -> Result<OperandContainer> {
+    fn parse_logical_and(token: Pair) -> RadeResult<OperandContainer> {
         check_rule!(token, Rule::logical_and);
         let pairs = token.into_inner();
         let mut logical_ands = Vec::new();
@@ -74,7 +74,7 @@ impl ConditionParser {
         }
     }
 
-    fn parse_comparison(token: Pair) -> Result<OperandContainer> {
+    fn parse_comparison(token: Pair) -> RadeResult<OperandContainer> {
         check_rule!(token, Rule::comparison);
         let mut pairs = token.into_inner();
         let left_token = pairs.next().unwrap();
@@ -88,24 +88,21 @@ impl ConditionParser {
                 Rule::NEQ => Operand::Neq(left_op, right_op, None),
                 Rule::IEQ => Operand::Eq(left_op, right_op, Some(InsensitiveFlag::Case)),
                 Rule::AEQ => Operand::Eq(left_op, right_op, Some(InsensitiveFlag::Apostrophe)),
-                Rule::AIEQ => {
-                    Operand::Eq(left_op, right_op, Some(InsensitiveFlag::CaseAndApostrophe))
-                },
-                Rule::GE => Operand::Ncmp(left_op.as_num()?, right_op.as_num()?, Comparator::Ge),
-                Rule::LE => Operand::Ncmp(left_op.as_num()?, right_op.as_num()?, Comparator::Le),
-                Rule::GT => Operand::Ncmp(left_op.as_num()?, right_op.as_num()?, Comparator::Gt),
-                Rule::LT => Operand::Ncmp(left_op.as_num()?, right_op.as_num()?, Comparator::Lt),
+                Rule::AIEQ => Operand::Eq(left_op, right_op, Some(InsensitiveFlag::CaseAndApostrophe)),
+                Rule::GE => Operand::Cmp(left_op.into_num()?, right_op.into_num()?, Comparator::Ge),
+                Rule::LE => Operand::Cmp(left_op.into_num()?, right_op.into_num()?, Comparator::Le),
+                Rule::GT => Operand::Cmp(left_op.into_num()?, right_op.into_num()?, Comparator::Gt),
+                Rule::LT => Operand::Cmp(left_op.into_num()?, right_op.into_num()?, Comparator::Lt),
                 _ => unexpected_token!(eq_op_token),
             };
 
             Ok(OperandContainer::from(op))
         } else {
-            // implement bool predicate
-            todo!()
+            Ok(OperandContainer::from(Operand::Bool(left_op.validate_bool()?)))
         }
     }
 
-    fn parse_unary(token: Pair) -> Result<Val> {
+    fn parse_unary(token: Pair) -> RadeResult<Val> {
         check_rule!(token, Rule::unary);
         let mut pairs = token.into_inner();
         let mut token = pairs.next().unwrap();
@@ -133,7 +130,7 @@ impl ConditionParser {
         Ok(primary)
     }
 
-    fn parse_primary(token: Pair) -> Result<Val> {
+    fn parse_primary(token: Pair) -> RadeResult<Val> {
         check_rule!(token, Rule::primary);
         let mut inner = token.into_inner();
         let primary_token = inner.next().unwrap();
@@ -147,7 +144,7 @@ impl ConditionParser {
         })
     }
 
-    fn parse_literal(token: Pair) -> Result<Val> {
+    fn parse_literal(token: Pair) -> RadeResult<Val> {
         check_rule!(token, Rule::literal);
         let inner = token.into_inner().next().unwrap();
         Ok(match inner.as_rule() {
@@ -162,16 +159,147 @@ impl ConditionParser {
 
 #[cfg(test)]
 mod tests {
+    use crate::Event;
+    use std::collections::HashMap;
     use super::*;
-    //use crate::rule_set::rule::parser::Rule;
+    use crate::EventSerialized;
+
+    const CONDITION: &str = "b >= 10 && flag || c == 'test'";
+    #[test]
+    fn rule_match() {
+        let condition = ConditionParser::parse_condition(CONDITION).expect("Parse error");
+        let map = HashMap::from([
+            (
+                "b".to_string(),
+                1234.into(),
+            ),
+            (
+                "flag".to_string(),
+                true.into(),
+            ),
+            (
+                "c".to_string(),
+                "test".into(),
+            ),
+        ]);
+        let event = Event::from(EventSerialized::new(map));
+        let result = condition.evaluate(&event);
+        println!(" Result: {}", result);
+        assert!(result);
+    }
 
     #[test]
-    fn test_rule_parser() {
-        let input = "b >= 10 && flag > 2 || c == 'test'";
+    fn rule_match_even_string_is_incorrect() {
+        let condition = ConditionParser::parse_condition(CONDITION).expect("Parse error");
+        let map = HashMap::from([
+            (
+                "b".to_string(),
+                1234.into(),
+            ),
+            (
+                "flag".to_string(),
+                true.into(),
+            ),
+            (
+                "c".to_string(),
+                "none".into(),
+            ),
+        ]);
+        let event = Event::from(EventSerialized::new(map));
+        let result = condition.evaluate(&event);
+        println!(" Result: {}", result);
+        assert!(result);
+    }
 
-        let parsed = ConditionParser::parse_condition(input).expect("Parse error");
+    #[test]
+    fn rule_does_not_match() {
+        let condition = ConditionParser::parse_condition(CONDITION).expect("Parse error");
+        let map = HashMap::from([
+            (
+                "b".to_string(),
+                2.into(),
+            ),
+            (
+                "flag".to_string(),
+                true.into(),
+            ),
+            (
+                "c".to_string(),
+                "none".into(),
+            ),
+        ]);
+        let event = Event::from(EventSerialized::new(map));
+        let result = condition.evaluate(&event);
+        println!(" Result: {}", result);
+        assert!(!result);
+    }
 
-        println!("{:#?}", parsed);
-        assert!(false);
+    #[test]
+    fn rule_with_float() {
+        let condition = ConditionParser::parse_condition(CONDITION).expect("Parse error");
+        let map = HashMap::from([
+            (
+                "b".to_string(),
+                12.5.into(),
+            ),
+            (
+                "flag".to_string(),
+                true.into(),
+            ),
+            (
+                "c".to_string(),
+                "test".into(),
+            ),
+        ]);
+        let event = Event::from(EventSerialized::new(map));
+        let result = condition.evaluate(&event);
+        println!(" Result: {}", result);
+        assert!(result);
+    }
+
+    #[test]
+    fn rule_incorrect_types_but_still_valid() {
+        let condition = ConditionParser::parse_condition(CONDITION).expect("Parse error");
+        let map = HashMap::from([
+            (
+                "b".to_string(),
+                12.5.into(),
+            ),
+            (
+                "flag".to_string(),
+                true.into(),
+            ),
+            (
+                "c".to_string(),
+                1.into(),
+            ),
+        ]);
+        let event = Event::from(EventSerialized::new(map));
+        let result = condition.evaluate(&event);
+        println!(" Result: {}", result);
+        assert!(result);
+    }
+
+    #[test]
+    fn rule_incorrect_types_but_still_invalid() {
+        let condition = ConditionParser::parse_condition(CONDITION).expect("Parse error");
+        let map = HashMap::from([
+            (
+                "b".to_string(),
+                "a".into(),
+            ),
+            (
+                "flag".to_string(),
+                true.into(),
+            ),
+            (
+                "c".to_string(),
+                "test".into(),
+            ),
+        ]);
+        let event = Event::from(EventSerialized::new(map));
+        let result = condition.evaluate(&event);
+        println!(" Result: {}", result);
+        assert!(!result);
     }
 }

@@ -9,6 +9,7 @@ enum ValSerialized {
     Float(f64),
     Str(String),
     StrList(Vec<String>),
+    Bool(bool),
     Field(String),
     Regex(String),
 }
@@ -33,6 +34,7 @@ impl Val {
             ValSerialized::Field(f) => Ok(Val::Field(f.into())),
             ValSerialized::Regex(f) => Ok(Val::Regex(RadeRegex::from_str(&f)?)),
             ValSerialized::Float(f) => Ok(Val::Float(f.into())),
+            ValSerialized::Bool(b) => Ok(Val::Bool(b.into())),
         }
     }
 }
@@ -51,6 +53,7 @@ impl serde::Serialize for Val {
             },
             Val::Field(f) => ValSerialized::Field(f.plain().to_string()),
             Val::Regex(f) => ValSerialized::Regex(f.0.plain().to_string()),
+            Val::Bool(b) => ValSerialized::Bool(b.0),
         };
         val_ser.serialize(serializer)
     }

@@ -32,6 +32,10 @@ fn create_event() {
             r#""[Ref].Assembly.GetType("System.Management.Automation.AmsiUtils").GetField('amsiInitFailed','NonPublic,Static').SetValue($null,$true)""#.into(),
         ),
         (
+            "content_tokens".to_string(),
+            vec!["Ref", ".Assembly.GetType", "System.Management.Automation.AmsiUtils", ".GetField", "amsiInitFailed", "NonPublic", "Static", ".SetValue", "null", "true"].into(),
+        ),
+        (
             "thread_id".to_string(),
             4321.into(),
         ),

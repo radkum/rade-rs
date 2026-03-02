@@ -2,6 +2,7 @@ use serde::{Deserialize, Serialize};
 
 use super::{Cast, InsensitiveFlag, Val};
 use crate::{Event, rule_set::rule::operand::val::Contains};
+use crate::RadeResult;
 
 #[derive(Debug, Deserialize, Serialize, PartialEq, Clone, Hash)]
 pub struct IntList(pub Vec<u64>);
@@ -15,42 +16,32 @@ impl IntList {
     pub fn new(list: Vec<u64>) -> Self {
         Self(list)
     }
-    pub fn eq(&self, elem: &Val, event: &Event) -> bool {
-        let (Some(i1), Some(i2)) = (self.as_u64_list(event), elem.as_u64_list(event)) else {
-            return false;
-        };
-        i1 == i2
+    pub fn eq(&self, elem: &Val, event: &Event) -> RadeResult<bool> {
+        let i1 = self.as_u64_list(event)?;
+        let i2 = elem.as_u64_list(event)?;
+        Ok(i1 == i2)
     }
 
-    pub fn as_u64<'a>(&'a self, _event: &'a Event) -> Option<u64> {
-        if self.0.len() == 1 {
-            self.0[0].into()
-        } else {
-            None
-        }
-    }
+
 }
 
 impl Cast for IntList {
-    fn as_u64<'a>(&'a self, _event: &'a Event) -> Option<u64> {
+    fn as_u64<'a>(&'a self, _event: &'a Event) -> RadeResult<u64> {
         if self.0.len() == 1 {
-            self.0[0].into()
+            Ok(self.0[0].into())
         } else {
-            None
+            Err(format!("Not a single value").into())
         }
     }
 
-    fn as_u64_list<'a>(&'a self, _event: &'a Event) -> Option<&'a Vec<u64>> {
-        Some(&self.0)
+    fn as_u64_list<'a>(&'a self, _event: &'a Event) -> RadeResult<&'a Vec<u64>> {
+        Ok(&self.0)
     }
 }
 
 impl Contains for IntList {
-    fn contains(&self, elem: &Val, event: &Event, _: &Option<InsensitiveFlag>) -> bool {
-        let Some(elem) = elem.as_u64(event) else {
-            return false;
-        };
-
-        self.0.contains(&elem)
+    fn contains(&self, elem: &Val, event: &Event, _: &Option<InsensitiveFlag>) -> RadeResult<bool> {
+        let elem = elem.as_u64(event)?;
+        Ok(self.0.contains(&elem))
     }
 }
