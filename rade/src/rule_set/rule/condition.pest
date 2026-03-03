@@ -16,9 +16,9 @@ comparison = { unary ~ (COMP_OP ~ unary)? }
 //addition = { multiplication ~ ( ADD_OP ~ multiplication )* }
 //multiplication = { unary ~ ( MUL_OP ~ unary )* }
 
-unary = { NOT_OP? ~ primary ~ postfix_op* }
+unary = { primary ~ postfix_op* }
 
-postfix_op = {
+postfix_op = _{
     function_call
     | element_access
 }
@@ -33,14 +33,14 @@ primary = {
     | parenthesis_expression
 }
 
-parenthesis_expression = { "(" ~ expression ~ ")" }
+parenthesis_expression = { NOT_OP? ~ "(" ~ expression ~ ")" }
 
 function_call = {
     "(" ~ argument_list? ~ ")"
 }
 
 element_access = {
-    "[" ~ expression ~ "]"
+    "[" ~ integer ~ "]"
 }
 
 argument_list = {
@@ -50,13 +50,19 @@ argument_list = {
 ////////////////////////////////////////////////////////////
 // 🔢 String
 ////////////////////////////////////////////////////////////
-string = @{ "'" ~ string_content* ~ "'" }
-string_content = _{ "''" | (!"'" ~ ANY)+ }
+string_with_apostrophes = _{ "'" ~ string ~ "'" }
+string = @{ string_content* }
+string_content = _{  "\\" ~ ANY | "''" | (!"'" ~ ANY) }
 
 ////////////////////////////////////////////////////////////
 // 🔢 Numbers
 ////////////////////////////////////////////////////////////
-number = @{ SUB_OP? ~ (float_literal | hex_literal | decimal_literal | octal_literal | binary_literal ) ~ integer_suffix? }
+integer = { hex | octal | binary | decimal }
+decimal = @{ SUB_OP? ~ decimal_literal ~ integer_suffix? }
+hex = @{ SUB_OP? ~ hex_literal ~ integer_suffix? }
+octal = @{ SUB_OP? ~ octal_literal~ integer_suffix? }
+binary = @{ SUB_OP? ~ binary_literal ~ integer_suffix? }
+float = @{ SUB_OP? ~ float_literal ~ float_suffix? }
 float_literal = @{
     (
         ASCII_DIGIT+ ~ "." ~ ASCII_DIGIT* 
@@ -69,26 +75,26 @@ float_literal = @{
 float_mantis = {^"e" ~ ("+" | "-")? ~ ASCII_DIGIT+}
 
 // Decimal
-decimal_literal = { decimal_digit ~ (decimal_digit_or_underscore*)? }
+decimal_literal = { decimal_digit ~ decimal_digit_or_underscore* }
 decimal_digit = { ASCII_DIGIT }
 decimal_digit_or_underscore = { "_" ~ ASCII_DIGIT | ASCII_DIGIT }
 
 // Hex
 hex_literal = { "0x" ~ hex_body }
-hex_body = { hex_digit ~ (hex_digit_or_underscore* ~ hex_digit)? }
+hex_body = { hex_digit ~ hex_digit_or_underscore* }
 
 hex_digit = { ASCII_HEX_DIGIT }
 hex_digit_or_underscore = { "_" ~ hex_digit | hex_digit }
 
 // octal
 octal_literal = { "0o" ~ octal_body }
-octal_body = { octal_digit ~ (octal_digit_or_underscore* ~ octal_digit)? }
+octal_body = { octal_digit ~ octal_digit_or_underscore* }
 octal_digit = { '0'..'7' }
 octal_digit_or_underscore = { "_" ~ octal_digit | octal_digit }
 
 // binary
 binary_literal  = { "0b" ~ binary_body }
-binary_body = { binary_digit ~ (binary_digit_or_underscore* ~ binary_digit)? }
+binary_body = { binary_digit ~ binary_digit_or_underscore* }
 binary_digit = { "0" | "1" }
 binary_digit_or_underscore = { "_" ~ binary_digit | binary_digit }
 
@@ -96,6 +102,7 @@ integer_suffix = {
       "u8" | "u16" | "u32" | "u64" | "u128" | "usize"
     | "i8" | "i16" | "i32" | "i64" | "i128" | "isize"
 }
+float_suffix = { "f32" | "f64" }
 ////////////////////////////////////////////////////////////
 // 🌐 CIDR IPv4
 ////////////////////////////////////////////////////////////
@@ -121,21 +128,25 @@ prefix = @{
 ////////////////////////////////////////////////////////////
 
 regex = @{
-    "/" ~ regex_body ~ "/" ~ regex_flags?
+    "/" ~ regex_body ~ "/" ~ regex_flags*
 }
 
 regex_body = {
-    ( "\\/" | !" /" ~ ANY )*
+    ( "\\/" | !"/" ~ ANY )*
 }
 
-regex_flags = @{
-    ("i" | "m" | "s")*
-}
+regex_flags = @{ "i" | "a" | "m" | "s" }
+
+////////////////////////////////////////////////////////////
+// 🔍 Bool Literal
+////////////////////////////////////////////////////////////
+bool = { "true" | "false" }
+
 
 ////////////////////////////////////////////////////////////
 // 🔢 Literals
 ////////////////////////////////////////////////////////////
-literal = ${ string | number | cidr | regex }
+literal = ${ bool | string_with_apostrophes | float | integer | cidr | regex }
 
 ////////////////////////////////////////////////////////////
 // 🔤 Identifiers
@@ -152,7 +163,7 @@ identifier = @{
 ADD_OP = _{ "+" | "-" }
 MUL_OP = _{ "*" | "/" }
 
-COMP_OP  = _{ EQ | NEQ | IEQ | AEQ | AIEQ | GE | LE | GT | LT }
+COMP_OP  = _{ EQ | NEQ | IEQ | AEQ | AIEQ | GE | LE | GT | LT | MATCH | NMATCH}
 EQ = { "==" }
 NEQ = { "!=" }
 IEQ = { "~=" }
@@ -162,6 +173,8 @@ GE = { ">=" }
 LE = { "<=" }
 GT = { ">" }
 LT = { "<" }
+MATCH = { "=~" }
+NMATCH = { "!~" }
 
 //INEQ = { "~!=" }
 

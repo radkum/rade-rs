@@ -1,7 +1,6 @@
-use std::collections::HashMap;
-
-use super::rule_set::Predicates;
+use super::rule_set::{Predicates, ResultMap};
 use crate::{Events, MatchedRules, Matches, RadeResult, Rules};
+
 #[derive(Default)]
 pub struct RadeEngine {
     rules: Rules,
@@ -59,7 +58,7 @@ impl RadeEngine {
         predicates: &Predicates,
     ) -> RadeResult<MatchedRules> {
         let mut matched_rules = MatchedRules::new();
-        let mut pred_results = HashMap::new();
+        let mut pred_results = ResultMap::default();
 
         //we want to evaluate all predicates for the event at first
         for predicate in predicates.simple().values() {
@@ -72,12 +71,7 @@ impl RadeEngine {
         }
 
         for rule in self.rules.iter() {
-            let Some(hash) = rule.condition_hash() else {
-                log::error!("Rule {} has no condition hash, skipping", rule.id());
-                continue;
-            };
-
-            let Some(res) = pred_results.get(&hash) else {
+            let Some(res) = pred_results.get(&rule.condition_hash()) else {
                 log::error!("Hash {} wasn't evaluated. Strange", rule.id());
                 continue;
             };

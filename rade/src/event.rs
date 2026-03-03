@@ -91,11 +91,11 @@ impl Events {
 
 #[derive(Debug, Clone)]
 pub struct Event {
-    numbers: HashMap<String, u64>,
+    numbers: HashMap<String, i64>,
     bools: HashMap<String, bool>,
     strings: HashMap<String, FatString>,
     string_lists: HashMap<String, Vec<FatString>>,
-    number_lists: HashMap<String, Vec<u64>>,
+    number_lists: HashMap<String, Vec<i64>>,
     all: HashMap<String, Val>,
 }
 
@@ -116,27 +116,41 @@ impl Event {
             .insert("name".to_string(), FatString::from(name.to_string()));
     }
 
-    pub fn get_int_field(&self, field_name: &FatString) -> RadeResult<u64> {
-        self.numbers.get(field_name.lowercased()).copied().ok_or_else(|| format!("Int field not found").into())
+    pub fn get_int_field(&self, field_name: &FatString) -> RadeResult<i64> {
+        self.numbers
+            .get(field_name.lowercased())
+            .copied()
+            .ok_or_else(|| format!("Int field not found").into())
     }
 
     pub fn get_bool_field(&self, field_name: &FatString) -> RadeResult<bool> {
-        self.bools.get(field_name.lowercased()).copied().ok_or_else(|| format!("Bool field not found").into())
+        self.bools
+            .get(field_name.lowercased())
+            .copied()
+            .ok_or_else(|| format!("Bool field not found").into())
     }
 
     pub fn get_str_field(&self, field_name: &FatString) -> RadeResult<&FatString> {
-        self.strings.get(field_name.lowercased()).ok_or_else(|| format!("Str field not found").into())
+        self.strings
+            .get(field_name.lowercased())
+            .ok_or_else(|| format!("Str field not found").into())
     }
 
     pub fn get_strlist_field(&self, field_name: &FatString) -> RadeResult<&Vec<FatString>> {
-        self.string_lists.get(field_name.lowercased()).ok_or_else(|| format!("Str list not found").into())
+        self.string_lists
+            .get(field_name.lowercased())
+            .ok_or_else(|| format!("Str list not found").into())
     }
 
-    pub fn get_intlist_field(&self, field_name: &FatString) -> RadeResult<&Vec<u64>> {
-        self.number_lists.get(field_name.lowercased()).ok_or_else(|| format!("Int list not found").into())
+    pub fn get_intlist_field(&self, field_name: &FatString) -> RadeResult<&Vec<i64>> {
+        self.number_lists
+            .get(field_name.lowercased())
+            .ok_or_else(|| format!("Int list not found").into())
     }
 
     pub fn get_field(&self, field_name: &FatString) -> RadeResult<&Val> {
-        self.all.get(field_name.lowercased()).ok_or_else(|| format!("Field not found").into())
+        self.all
+            .get(field_name.lowercased())
+            .ok_or_else(|| format!("Field not found").into())
     }
 }

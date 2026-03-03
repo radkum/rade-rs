@@ -3,10 +3,10 @@ use std::{
     collections::HashMap,
     hash::{DefaultHasher, Hash, Hasher},
 };
-use crate::RadeResult;
+
 use serde::{Deserialize, Serialize};
-pub use val::{Cast, Comparator, Val};
-use val::{Bool, Compare, Contains, Eq, Field, Match, Num, RadeRegex, Str};
+pub use val::{Cast, Comparator, RadeRegex, Val};
+use val::{Compare, Match};
 
 use crate::{Event, InsensitiveFlag};
 
@@ -45,46 +45,7 @@ impl From<Operand> for OperandContainer {
 }
 
 impl OperandContainer {
-    pub fn evaluate(&self, event: &Event) -> bool {
-        let res = match &self.op {
-            Operand::Or(operands) => {
-                let mut result = false;
-                for operand in operands {
-                    if operand.evaluate(event) {
-                        result = true;
-                        break;
-                    }
-                }
-                Ok(result)
-            },
-            Operand::And(operands) => {
-                let mut result = true;
-                for operand in operands {
-                    if !operand.evaluate(event) {
-                        result = false;
-                        break;
-                    }
-                }
-                Ok(result)
-            },
-            Operand::Eq(val1, val2, flag) => val1.equal(val2, event, flag),
-            Operand::Neq(val1, val2, flag) => val1.neq(val2, event, flag),
-            Operand::Cmp(val1, val2, comparator) => val1.cmp(val2, event, comparator),
-            Operand::StartsWith(val1, val2, flag) => val1.starts_with(val2, event, flag),
-            Operand::EndsWith(val1, val2, flag) => val1.ends_with(val2, event, flag),
-            Operand::Contains(val1, val2, flag) => val1.contains(val2, event, flag),
-            Operand::Match(field, regex, flag) => regex.match_(field, event, flag),
-            Operand::NotMatch(field, regex, flag) => regex.not_match(field, event, flag),
-            Operand::Bool(val) => val.as_bool(event),
-        };
-
-        res.unwrap_or_else(|e| {
-            log::error!("Error evaluating operand: {:?}, error: {}", self, e);
-            false
-        })
-    }
-
-    pub fn eval_with_cache(&self, event: &Event, cache: &mut HashMap<OpHash, bool>) -> bool {
+    pub fn evaluate(&self, event: &Event, cache: &mut HashMap<OpHash, bool>) -> bool {
         if let Some(cached_result) = cache.get(&self.hash()) {
             return *cached_result;
         }
@@ -93,7 +54,7 @@ impl OperandContainer {
             Operand::Or(operands) => {
                 let mut result = false;
                 for operand in operands {
-                    if operand.eval_with_cache(event, cache) {
+                    if operand.evaluate(event, cache) {
                         result = true;
                         break;
                     }
@@ -103,29 +64,27 @@ impl OperandContainer {
             Operand::And(operands) => {
                 let mut result = true;
                 for operand in operands {
-                    if !operand.eval_with_cache(event, cache) {
+                    if !operand.evaluate(event, cache) {
                         result = false;
                         break;
                     }
                 }
                 Ok(result)
             },
-            Operand::Eq(val1, val2, flag) => val1.equal(val2, event, flag),
-            Operand::Neq(val1, val2, flag) => val1.neq(val2, event, flag),
-            Operand::Cmp(val1, val2, comparator) => val1.cmp(val2, event, comparator),
-            Operand::StartsWith(val1, val2, flag) => val1.starts_with(val2, event, flag),
-            Operand::EndsWith(val1, val2, flag) => val1.ends_with(val2, event, flag),
-            Operand::Contains(val1, val2, flag) => val1.contains(val2, event, flag),
-            Operand::Match(field, regex, flag) => regex.match_(field, event, flag),
-            Operand::NotMatch(field, regex, flag) => regex.not_match(field, event, flag),
-            Operand::Bool(val) => val.as_bool(event),
+            Operand::Cmp(val1, val2, comparator, flag) => val1.cmp(val2, event, comparator, flag),
+            Operand::Match(val, regex, comparator) => regex.match_(val, event, comparator),
+            Operand::Val(val) => val.as_bool(event),
+            Operand::Negate(op) => todo!(),
         };
 
         let e = res.unwrap_or_else(|e| {
-            log::error!("Error evaluating operand: {:?}, error: {}", self, e);
+            //log::error!("Error evaluating operand: {:?}, error: {}", self, e);
+            println!("Error evaluating operand: {:?}, error: {}", self, e);
             false
         });
+
         cache.insert(self.hash(), e);
+
         e
     }
 
@@ -160,15 +119,15 @@ impl OperandContainer {
 pub enum Operand {
     And(Vec<OperandContainer>),
     Or(Vec<OperandContainer>),
-    Eq(Val, Val, #[serde(default)] Option<InsensitiveFlag>),
-    Neq(Val, Val, #[serde(default)] Option<InsensitiveFlag>),
-    Cmp(Num, Num, Comparator),
-    StartsWith(Str, Str, #[serde(default)] Option<InsensitiveFlag>),
-    EndsWith(Str, Str, #[serde(default)] Option<InsensitiveFlag>),
-    Contains(Val, Val, #[serde(default)] Option<InsensitiveFlag>),
-    Match(Field, RadeRegex, #[serde(default)] Option<InsensitiveFlag>),
-    NotMatch(Field, RadeRegex, #[serde(default)] Option<InsensitiveFlag>),
-    Bool(Val)
+    Cmp(
+        Val,
+        Val,
+        Comparator,
+        #[serde(default)] Option<InsensitiveFlag>,
+    ),
+    Match(Val, RadeRegex, Comparator),
+    Val(Val),
+    Negate(Box<OperandContainer>),
 }
 
 impl Operand {

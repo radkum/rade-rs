@@ -6,7 +6,7 @@ mod rules;
 use core::mem::size_of;
 
 pub use error::*;
-pub(super) use predicates::Predicates;
+pub(super) use predicates::{Predicates, ResultMap};
 pub use rule::*;
 pub use rules::*;
 use serde::{Deserialize, Serialize};

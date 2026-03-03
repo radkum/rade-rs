@@ -1,18 +1,18 @@
 use serde::{Deserialize, Serialize};
 
-use super::{Cast, Comparator, Compare, Contains, Eq, InsensitiveFlag, Num, Val};
+use super::{Cast, Comparator, Compare, Contains, Eq, InsensitiveFlag, Val, float::float_eq};
 use crate::{Event, RadeResult};
 
 #[derive(Debug, Deserialize, Serialize, PartialEq, Clone, Hash)]
-pub struct Int(pub u64);
-impl From<u64> for Int {
-    fn from(i: u64) -> Self {
+pub struct Int(pub i64);
+impl From<i64> for Int {
+    fn from(i: i64) -> Self {
         Int(i)
     }
 }
 
 impl Cast for Int {
-    fn as_u64<'a>(&'a self, _: &'a Event) -> RadeResult<u64> {
+    fn as_i64<'a>(&'a self, _: &'a Event) -> RadeResult<i64> {
         Ok(self.0)
     }
 
@@ -23,7 +23,7 @@ impl Cast for Int {
 
 impl Eq for Int {
     fn equal(&self, elem: &Val, event: &Event, _: &Option<InsensitiveFlag>) -> RadeResult<bool> {
-        Ok(self.as_u64(event)? == elem.as_u64(event)?)
+        Ok(self.as_i64(event)? == elem.as_i64(event)?)
     }
 
     fn neq(&self, elem: &Val, event: &Event, _: &Option<InsensitiveFlag>) -> RadeResult<bool> {
@@ -38,22 +38,51 @@ impl Contains for Int {
 }
 
 impl Compare for Int {
-    fn cmp<'a>(&'a self, elem: &Num, event: &'a Event, coparator: &Comparator) -> RadeResult<bool> {
-        Ok(if let Num::Int(i2) = elem {
+    fn cmp<'a>(
+        &'a self,
+        elem: &Val,
+        event: &'a Event,
+        coparator: &Comparator,
+        flag: &Option<InsensitiveFlag>,
+    ) -> RadeResult<bool> {
+        if flag.is_some() {
+            return Err("Cannot use case-insensitive flag with numbers".into());
+        }
+        Ok(if let Val::Field(field) = elem {
+            field.cmp(&Val::Int(self.0.into()), event, &coparator.negate(), flag)?
+        } else if let Val::Int(i2) = elem {
             match coparator {
+                Comparator::Eq => self.0 == i2.0,
+                Comparator::Neq => self.0 != i2.0,
                 Comparator::Gt => self.0 > i2.0,
                 Comparator::Lt => self.0 < i2.0,
                 Comparator::Ge => self.0 >= i2.0,
                 Comparator::Le => self.0 <= i2.0,
+                Comparator::Match | Comparator::Nmatch => {
+                    return Err(format!(
+                        "Comparator {:?} supported only for regex matching",
+                        coparator
+                    )
+                    .into());
+                },
             }
         } else {
             let i1 = self.as_f64(event)?;
             let i2 = elem.as_f64(event)?;
             match coparator {
+                Comparator::Eq => float_eq(i1, i2),
+                Comparator::Neq => !float_eq(i1, i2),
                 Comparator::Gt => i1 > i2,
                 Comparator::Lt => i1 < i2,
                 Comparator::Ge => i1 >= i2,
                 Comparator::Le => i1 <= i2,
+                Comparator::Match | Comparator::Nmatch => {
+                    return Err(format!(
+                        "Comparator {:?} supported only for regex matching",
+                        coparator
+                    )
+                    .into());
+                },
             }
         })
     }

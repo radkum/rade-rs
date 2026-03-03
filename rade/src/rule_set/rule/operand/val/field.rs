@@ -1,7 +1,10 @@
 use serde::{Deserialize, Serialize};
 
-use super::{Cast, Contains, Eq, InsensitiveFlag, Val};
-use crate::{Event, FatString, RadeResult, rule_set::rule::operand::val::Compare};
+use super::{Cast, Eq, InsensitiveFlag, Val};
+use crate::{
+    Event, FatString, RadeResult,
+    rule_set::rule::operand::val::{Compare, Int, Str},
+};
 
 #[derive(Debug, PartialEq, Clone, Hash, Serialize, Deserialize)]
 pub struct Field(pub FatString);
@@ -24,6 +27,14 @@ impl Field {
     pub fn plain(&self) -> &str {
         self.0.plain()
     }
+
+    pub fn get<'a>(&self, event: &'a Event, index: i64) -> RadeResult<Val> {
+        match event.get_field(&self.0)? {
+            Val::StrList(str_list) => Ok(Val::Str(Str(str_list.get(index as usize)?.clone()))),
+            Val::IntList(int_list) => Ok(Val::Int(Int(*int_list.get(index as usize)?))),
+            _ => Err(format!("Field index {} not found", index).into()),
+        }
+    }
 }
 
 impl Cast for Field {
@@ -45,7 +56,7 @@ impl Cast for Field {
         Ok(str_list.iter().map(|s| s.choose(comp_flag)).collect())
     }
 
-    fn as_u64<'a>(&'a self, event: &'a Event) -> RadeResult<u64> {
+    fn as_i64<'a>(&'a self, event: &'a Event) -> RadeResult<i64> {
         event.get_int_field(&self.0)
     }
 
@@ -53,7 +64,7 @@ impl Cast for Field {
         event.get_bool_field(&self.0)
     }
 
-    fn as_u64_list<'a>(&'a self, event: &'a Event) -> RadeResult<&'a Vec<u64>> {
+    fn as_i64_list<'a>(&'a self, event: &'a Event) -> RadeResult<&'a Vec<i64>> {
         event.get_intlist_field(&self.0)
     }
 }
@@ -80,27 +91,27 @@ impl Eq for Field {
     }
 }
 
-impl Contains for Field {
-    fn contains(
-        &self,
-        elem: &Val,
-        event: &crate::Event,
-        comp_flag: &Option<InsensitiveFlag>,
-    ) -> RadeResult<bool> {
-        let val = event.get_field(&self.0)?;
-        val.contains(elem, event, comp_flag)
-    }
-}
+// impl Contains for Field {
+//     fn contains(
+//         &self,
+//         elem: &Val,
+//         event: &crate::Event,
+//         comp_flag: &Option<InsensitiveFlag>,
+//     ) -> RadeResult<bool> {
+//         let val = event.get_field(&self.0)?;
+//         val.contains(elem, event, comp_flag)
+//     }
+// }
 
 impl Compare for Field {
     fn cmp<'a>(
         &'a self,
-        elem: &super::Num,
+        elem: &Val,
         event: &'a Event,
         comparator: &super::Comparator,
+        flag: &Option<InsensitiveFlag>,
     ) -> RadeResult<bool> {
         let val = event.get_field(&self.0)?;
-        let num = val.clone().into_num()?;
-        num.cmp(elem, event, comparator)
+        val.cmp(elem, event, comparator, flag)
     }
 }

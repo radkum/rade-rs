@@ -5,6 +5,14 @@ use crate::{FatString, RadeResult};
 
 #[derive(Debug, Deserialize, Serialize, PartialEq, Clone, Hash)]
 pub struct StrList(pub Vec<FatString>);
+impl StrList {
+    pub fn get(&self, index: usize) -> RadeResult<&FatString> {
+        self.0
+            .get(index)
+            .ok_or_else(|| format!("Index out of bounds").into())
+    }
+}
+
 impl From<Vec<String>> for StrList {
     fn from(v: Vec<String>) -> Self {
         StrList(v.into_iter().map(FatString::from).collect())

@@ -10,6 +10,20 @@ pub enum InsensitiveFlag {
     CaseAndApostrophe,
 }
 
+impl InsensitiveFlag {
+    pub fn from_regex_flags(flags: &str) -> Option<Self> {
+        if flags.contains("ia") {
+            Some(InsensitiveFlag::CaseAndApostrophe)
+        } else if flags.contains("i") {
+            Some(InsensitiveFlag::Case)
+        } else if flags.contains("a") {
+            Some(InsensitiveFlag::Apostrophe)
+        } else {
+            None
+        }
+    }
+}
+
 #[derive(Clone)]
 pub struct FatString {
     pub plain: String,

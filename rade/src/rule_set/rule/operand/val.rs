@@ -1,9 +1,8 @@
+mod bool;
 mod field;
 mod float;
-mod bool;
 mod int;
 mod int_list;
-mod num;
 mod regex;
 mod serialization;
 mod str;
@@ -14,14 +13,40 @@ pub use field::*;
 pub use float::*;
 pub use int::*;
 pub use int_list::*;
-pub use num::{Comparator, Num};
 pub use regex::RadeRegex;
+use serde::{Deserialize, Serialize};
 use serde_yaml_bw::Value as YamlValue;
 pub use str::*;
 pub use str_list::*;
 
 use crate::{Event, FatString, InsensitiveFlag, RadeResult};
 
+#[derive(Debug, Deserialize, Serialize, PartialEq, Clone, Hash)]
+pub enum Comparator {
+    Eq,
+    Neq,
+    Gt,
+    Lt,
+    Ge,
+    Le,
+    Match,
+    Nmatch,
+}
+
+impl Comparator {
+    pub fn negate(&self) -> Self {
+        match self {
+            Comparator::Eq => Comparator::Neq,
+            Comparator::Neq => Comparator::Eq,
+            Comparator::Gt => Comparator::Le,
+            Comparator::Lt => Comparator::Ge,
+            Comparator::Ge => Comparator::Lt,
+            Comparator::Le => Comparator::Gt,
+            Comparator::Match => Comparator::Nmatch,
+            Comparator::Nmatch => Comparator::Match,
+        }
+    }
+}
 pub trait Eq {
     fn equal<'a>(
         &'a self,
@@ -45,18 +70,9 @@ pub trait Eq {
 pub trait Match {
     fn match_<'a>(
         &'a self,
-        _elem: &Field,
+        _elem: &Val,
         _event: &'a Event,
-        _comp_flag: &Option<InsensitiveFlag>,
-    ) -> RadeResult<bool> {
-        Err("Not implemented".into())
-    }
-
-    fn not_match<'a>(
-        &'a self,
-        _elem: &Field,
-        _event: &'a Event,
-        _comp_flag: &Option<InsensitiveFlag>,
+        _comp_flag: &Comparator,
     ) -> RadeResult<bool> {
         Err("Not implemented".into())
     }
@@ -74,10 +90,10 @@ pub trait Contains {
 }
 
 pub trait Cast {
-    fn as_u64<'a>(&'a self, _event: &'a Event) -> RadeResult<u64> {
+    fn as_i64<'a>(&'a self, _event: &'a Event) -> RadeResult<i64> {
         Err("Not implemented".into())
     }
-    fn as_u64_list<'a>(&'a self, _event: &'a Event) -> RadeResult<&'a Vec<u64>> {
+    fn as_i64_list<'a>(&'a self, _event: &'a Event) -> RadeResult<&'a Vec<i64>> {
         Err("Not implemented".into())
     }
     fn as_f64<'a>(&'a self, _event: &'a Event) -> RadeResult<f64> {
@@ -104,13 +120,21 @@ pub trait Cast {
 }
 
 pub trait Compare {
-    fn cmp<'a>(&'a self, _elem: &Num, _event: &'a Event, _coparator: &Comparator) -> RadeResult<bool> {
+    fn cmp<'a>(
+        &'a self,
+        _elem: &Val,
+        _event: &'a Event,
+        _comparator: &Comparator,
+        _flag: &Option<InsensitiveFlag>,
+    ) -> RadeResult<bool> {
         Err(format!("Not a number").into())
     }
 }
 
+//type FnName = String;
 #[derive(Debug, PartialEq, Clone, Hash)]
 pub enum Val {
+    Bool(Bool),
     Int(Int),
     IntList(IntList),
     Float(Float),
@@ -118,38 +142,16 @@ pub enum Val {
     StrList(StrList),
     Regex(RadeRegex),
     Field(Field),
-    Bool(Bool),
+    FieldIndex(Field, i64),
+    //Fn(FnName, Vec<Val>)
 }
 
 impl Val {
-    pub fn into_num(self) -> RadeResult<Num> {
-        match self {
-            Val::Int(int) => Ok(Num::Int(int.clone())),
-            Val::Float(float) => Ok(Num::Float(float.clone())),
-            Val::Field(field) => Ok(Num::Field(field.clone())),
-            _ => Err(format!("Not a number: {:?}", self).into()),
-        }
-    }
-
     pub fn validate_bool(self) -> RadeResult<Val> {
         match self {
-             Val::Bool(_) => Ok(self),
-             Val::Field(_) => Ok(self),
-             _ => Err(format!("Not a boolean: {:?}", self).into()),
-         }
-    }
-}
-impl Contains for Val {
-    fn contains<'a>(&self, elem: &Val, event: &Event, comp_flag: &Option<InsensitiveFlag>) -> RadeResult<bool> {
-        match self {
-            Val::Int(val) => val.contains(elem, event, comp_flag),
-            Val::Float(val) => val.contains(elem, event, comp_flag),
-            Val::Str(val) => val.contains(elem, event, comp_flag),
-            Val::IntList(val) => val.contains(elem, event, comp_flag),
-            Val::StrList(val) => val.contains(elem, event, comp_flag),
-            Val::Field(field) => field.contains(elem, event, comp_flag),
-            Val::Bool(_) => Err("Contains for bool not implemented".into()),
-            Val::Regex(_) => Err("Contains for regex not implemented".into()),
+            Val::Bool(_) => Ok(self),
+            Val::Field(_) => Ok(self),
+            _ => Err(format!("Not a boolean: {:?}", self).into()),
         }
     }
 }
@@ -170,6 +172,9 @@ impl Eq for Val {
             Val::Field(field) => field.equal(elem, event, comp_flag),
             Val::Bool(b) => b.equal(elem, event, comp_flag),
             Val::Regex(_) => Err("Eq for regex not implemented".into()),
+            Val::FieldIndex(field, index) => {
+                field.get(event, *index)?.equal(elem, event, comp_flag)
+            },
         }
     }
 
@@ -180,14 +185,15 @@ impl Eq for Val {
         comp_flag: &Option<InsensitiveFlag>,
     ) -> RadeResult<bool> {
         match self {
+            Val::Bool(b) => b.neq(elem, event, comp_flag),
             Val::Int(int) => int.neq(elem, event, comp_flag),
             Val::Float(float) => float.neq(elem, event, comp_flag),
             Val::IntList(_) => Err("Neq for intlist not implemented".into()),
             Val::Str(str) => str.neq(elem, event, comp_flag),
             Val::StrList(_) => Err("Neq for strlist not implemented".into()),
-            Val::Field(field) => field.neq(elem, event, comp_flag),
-            Val::Bool(b) => b.neq(elem, event, comp_flag),
             Val::Regex(_) => Err("Neq for regex not implemented".into()),
+            Val::Field(field) => field.neq(elem, event, comp_flag),
+            Val::FieldIndex(field, index) => field.get(event, *index)?.neq(elem, event, comp_flag),
         }
     }
 }
@@ -195,35 +201,24 @@ impl Eq for Val {
 impl Match for Val {
     fn match_<'a>(
         &'a self,
-        elem: &Field,
+        elem: &Val,
         event: &'a Event,
-        comp_flag: &Option<InsensitiveFlag>,
+        comparator: &Comparator,
     ) -> RadeResult<bool> {
         match self {
-            Val::Regex(i) => i.match_(elem, event, comp_flag),
+            Val::Regex(i) => i.match_(elem, event, comparator),
             _ => Err("Match implemented only for Regex".into()),
-        }
-    }
-
-    fn not_match<'a>(
-        &'a self,
-        elem: &Field,
-        event: &'a Event,
-        comp_flag: &Option<InsensitiveFlag>,
-    ) -> RadeResult<bool> {
-        match self {
-            Val::Regex(i) => i.not_match(elem, event, comp_flag),
-            _ => Err("Not match implemented only for Regex".into()),
         }
     }
 }
 
 impl Cast for Val {
-    fn as_u64<'a>(&'a self, event: &'a Event) -> RadeResult<u64> {
+    fn as_i64<'a>(&'a self, event: &'a Event) -> RadeResult<i64> {
         match self {
-            Val::Int(int) => int.as_u64(event),
-            Val::Float(float) => float.as_u64(event),
-            _ => Err(format!("Cannot convert {:?} to u64", self).into()),
+            Val::Int(int) => int.as_i64(event),
+            Val::Float(float) => float.as_i64(event),
+            Val::Field(field) => field.as_i64(event),
+            _ => Err(format!("Cannot convert {:?} to i64", self).into()),
         }
     }
 
@@ -231,6 +226,7 @@ impl Cast for Val {
         match self {
             Val::Int(int) => int.as_f64(event),
             Val::Float(float) => float.as_f64(event),
+            Val::Field(field) => field.as_f64(event),
             _ => Err(format!("Cannot convert {:?} to f64", self).into()),
         }
     }
@@ -248,11 +244,11 @@ impl Cast for Val {
         }
     }
 
-    fn as_u64_list<'a>(&'a self, event: &'a Event) -> RadeResult<&'a Vec<u64>> {
+    fn as_i64_list<'a>(&'a self, event: &'a Event) -> RadeResult<&'a Vec<i64>> {
         match self {
-            Val::Int(i) => i.as_u64_list(event),
-            Val::IntList(i) => i.as_u64_list(event),
-            _ => Err(format!("Cannot convert {:?} to Vec<u64>", self).into()),
+            Val::Int(i) => i.as_i64_list(event),
+            Val::IntList(i) => i.as_i64_list(event),
+            _ => Err(format!("Cannot convert {:?} to Vec<i64>", self).into()),
         }
     }
 
@@ -277,16 +273,58 @@ impl Cast for Val {
     }
 }
 
+impl Compare for Val {
+    fn cmp<'a>(
+        &'a self,
+        elem: &Val,
+        event: &'a Event,
+        comparator: &Comparator,
+        flag: &Option<InsensitiveFlag>,
+    ) -> RadeResult<bool> {
+        println!("Comparing {:?} with {:?}", self, elem);
+        match self {
+            Val::Bool(b) => b.cmp(elem, event, comparator, flag),
+            Val::Int(i) => i.cmp(elem, event, comparator, flag),
+            Val::Float(f) => f.cmp(elem, event, comparator, flag),
+            Val::Str(s) => s.cmp(elem, event, comparator, flag),
+            Val::Field(field) => event
+                .get_field(&field.0)?
+                .cmp(elem, event, comparator, flag),
+            Val::FieldIndex(field, index) => {
+                field.get(event, *index)?.cmp(elem, event, comparator, flag)
+            },
+            _ => Err(format!("Cannot compare {:?} with {:?}", self, elem).into()),
+        }
+    }
+}
+
 impl From<&YamlValue> for Val {
     fn from(value: &YamlValue) -> Self {
         match value {
-            YamlValue::Number(n) => if n.is_f64() {
-                Val::Float(Float(n.as_f64().unwrap()))
-            } else {
-                Val::Int(Int(n.as_u64().unwrap()))
+            YamlValue::Bool(b) => Val::Bool(Bool(*b)),
+            YamlValue::Number(n) => {
+                if n.is_f64() {
+                    Val::Float(Float(n.as_f64().unwrap()))
+                } else {
+                    Val::Int(Int(n.as_i64().unwrap()))
+                }
             },
             YamlValue::String(s) => Val::Str(Str(FatString::from(s))),
-            YamlValue::Bool(b) => Val::Bool(Bool(*b)),
+            YamlValue::Sequence(seq) => {
+                if seq.iter().all(|v| v.is_i64()) {
+                    Val::IntList(IntList(
+                        seq.iter().map(|v| v.as_i64().unwrap_or_default()).collect(),
+                    ))
+                } else if seq.iter().all(|v| v.is_string()) {
+                    Val::StrList(StrList(
+                        seq.iter()
+                            .map(|v| FatString::from(v.as_str().unwrap_or_default()))
+                            .collect(),
+                    ))
+                } else {
+                    panic!("Unsupported YAML sequence type")
+                }
+            },
             _ => todo!(),
         }
     }

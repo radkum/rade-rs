@@ -52,15 +52,18 @@ impl From<&EventSerialized> for Event {
         let mut numbers = HashMap::new();
         let mut strings = HashMap::<String, FatString>::new();
         let mut string_lists = HashMap::<String, Vec<FatString>>::new();
-        let mut number_lists = HashMap::<String, Vec<u64>>::new();
+        let mut number_lists = HashMap::<String, Vec<i64>>::new();
 
         for (key, value) in serialized.0.iter() {
+            //println!("Processing key: {}, value: {:?}", key, value);
             match value {
                 YamlValue::Bool(n) => {
                     let _ = bools.insert(key.to_string(), *n);
                 },
                 YamlValue::Number(n) => {
-                    let _ = numbers.insert(key.to_string(), n.as_u64().unwrap_or_default());
+                    if let Some(i) = n.as_i64() {
+                        let _ = numbers.insert(key.to_string(), i);
+                    }
                 },
                 YamlValue::String(s) => {
                     let _ = strings.insert(key.to_string(), FatString::from(s));
@@ -68,7 +71,7 @@ impl From<&EventSerialized> for Event {
                 YamlValue::Sequence(seq) => {
                     let mut all_numbers = true;
                     for item in seq.iter() {
-                        let YamlValue::Number(n) = item else{
+                        let YamlValue::Number(_) = item else {
                             all_numbers = false;
                             break;
                         };
@@ -76,17 +79,18 @@ impl From<&EventSerialized> for Event {
                     if all_numbers {
                         let int_list = seq
                             .iter()
-                            .filter_map(|item| item.as_u64())
-                            .collect::<Vec<u64>>();
+                            .filter_map(|item| item.as_i64())
+                            .collect::<Vec<i64>>();
                         let _ = number_lists.insert(key.to_string(), int_list);
                     } else {
                         let str_list = seq
                             .iter()
-                            .filter_map(|item| item.as_str().map(|s| FatString::from(s.to_string())))
+                            .filter_map(|item| {
+                                item.as_str().map(|s| FatString::from(s.to_string()))
+                            })
                             .collect::<Vec<FatString>>();
                         let _ = string_lists.insert(key.to_string(), str_list);
                     }
-                    
                 },
                 _ => todo!(),
             };

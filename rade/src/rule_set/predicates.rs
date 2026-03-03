@@ -1,7 +1,10 @@
 use std::collections::HashMap;
 
 use super::{rule::OpHash, rules::Rules};
-pub type PredType = Box<dyn Fn(&crate::Event, &mut HashMap<OpHash, bool>) -> bool>;
+
+pub type ResultMap = HashMap<OpHash, bool>;
+pub type PredType = Box<dyn Fn(&crate::Event, &mut ResultMap) -> bool>;
+
 pub(crate) struct Predicate(pub(crate) PredType);
 pub(crate) struct Predicates {
     simple_predicates: HashMap<OpHash, Predicate>,
@@ -29,8 +32,8 @@ impl Predicates {
                 simple_predicates.insert(
                     hash,
                     Predicate(Box::new(
-                        move |event: &crate::Event, cache: &mut HashMap<OpHash, bool>| {
-                            op.eval_with_cache(event, cache)
+                        move |event: &crate::Event, cache: &mut ResultMap| {
+                            op.evaluate(event, cache)
                         },
                     )),
                 );
@@ -40,8 +43,8 @@ impl Predicates {
                 complex_predicates.insert(
                     hash,
                     Predicate(Box::new(
-                        move |event: &crate::Event, cache: &mut HashMap<OpHash, bool>| {
-                            op.eval_with_cache(event, cache)
+                        move |event: &crate::Event, cache: &mut ResultMap| {
+                            op.evaluate(event, cache)
                         },
                     )),
                 );

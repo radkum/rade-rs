@@ -91,31 +91,34 @@ pub fn serialize_ruleset_from_dir() -> Result<()> {
     Ok(())
 }
 
-fn create_rule() -> Rule {
-    let condition = Operand::And(vec![
-        Operand::Contains(
-            Val::Field("Content".into()),
-            Val::Str("[Ref].Assembly.GetType('System.Management.Automation.AmsiUtils')".into()),
-            Some(InsensitiveFlag::CaseAndApostrophe),
-        )
-        .into(),
-        Operand::Contains(
-            Val::Field("Content".into()),
-            Val::Str(".GetField('amsiInitFailed'".into()),
-            Some(InsensitiveFlag::CaseAndApostrophe),
-        )
-        .into(),
-    ]);
-    let rule = Rule::new(
-        uuid::Uuid::from_str("43025534-69e4-4e81-a78f-fad61111a7df").unwrap(),
-        "Bypass Amsi",
-        "This rule detects the modification of the amsiInitFailed field to bypass AMSI.",
-        "Defense Evasion",
-        "TA0005",
-        "T1562.001",
-        r#""[Ref].Assembly.GetType("System.Management.Automation.AmsiUtils").GetField('amsiInitFailed','NonPublic,Static').SetValue($null,$true)""#,
-        condition.into(),
-    );
-    println!("{}", serde_yaml_bw::to_string(&rule).unwrap());
-    rule
-}
+// fn create_rule() -> Rule {
+//     let condition = Condition::from_str(r#"Content ^= '[Ref].Assembly.GetType('System.Management.Automation.AmsiUtils')' && "#)?;
+//     // let condition = Operand::And(vec![
+//     //     Operand::Contains(
+//     //         Val::Field("Content".into()),
+//     //
+// Val::Str("[Ref].Assembly.GetType('System.Management.Automation.AmsiUtils')".
+// into()),     //         Some(InsensitiveFlag::CaseAndApostrophe),
+//     //     )
+//     //     .into(),
+//     //     Operand::Contains(
+//     //         Val::Field("Content".into()),
+//     //         Val::Str(".GetField('amsiInitFailed'".into()),
+//     //         Some(InsensitiveFlag::CaseAndApostrophe),
+//     //     )
+//     //     .into(),
+//     // ]);
+//     let rule = Rule::new(
+//         uuid::Uuid::from_str("43025534-69e4-4e81-a78f-fad61111a7df").
+// unwrap(),         "Bypass Amsi",
+//         "This rule detects the modification of the amsiInitFailed field to
+// bypass AMSI.",         "Defense Evasion",
+//         "TA0005",
+//         "T1562.001",
+//         r#""[Ref].Assembly.GetType("System.Management.Automation.AmsiUtils").
+// GetField('amsiInitFailed','NonPublic,Static').SetValue($null,$true)""#,
+//         condition.into(),
+//     );
+//     println!("{}", serde_yaml_bw::to_string(&rule).unwrap());
+//     rule
+// }
