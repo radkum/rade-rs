@@ -54,7 +54,7 @@ impl serde::Serialize for Val {
             Val::StrList(sl) => {
                 ValSerialized::StrList(sl.0.iter().map(|fs| fs.plain().to_string()).collect())
             },
-            Val::Regex(f) => ValSerialized::Regex(f.0.plain().to_string()),
+            Val::Regex(f) => ValSerialized::Regex(f.to_string()),
             Val::Field(f) => ValSerialized::Field(f.plain().to_string()),
             Val::FieldIndex(field, index) => {
                 ValSerialized::FieldIndex(field.plain().to_string(), *index)

@@ -205,16 +205,7 @@ impl ConditionParser {
         let regex_str = token.as_str();
         // Remove the leading and trailing slashes and any flags
         // Format: /pattern/flags
-        let regex_str = regex_str.trim_start_matches('/');
-        let (pattern, flags) = if let Some(last_slash) = regex_str.rfind('/') {
-            let (pattern, flags) = regex_str.split_at(last_slash);
-            (pattern, &flags[1..]) // Skip the slash in flags part
-        } else {
-            (regex_str, "")
-        };
-        // Unescape \/ to /
-        let pattern = pattern.replace("\\/", "/");
-        Ok(Val::Regex(super::RadeRegex::new(&pattern, flags)?))
+        Ok(Val::Regex(super::RadeRegex::from_str(regex_str)?))
     }
 
     fn parse_integer(token: Pair) -> RadeResult<i64> {
