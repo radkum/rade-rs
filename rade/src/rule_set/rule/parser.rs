@@ -172,18 +172,15 @@ impl ConditionParser {
         check_rule!(token, Rule::parenthesis_expression);
         let mut pairs = token.into_inner();
         let mut token = pairs.next().unwrap();
-        let negate = if let Rule::NOT_OP = token.as_rule() {
-            token = pairs.next().unwrap();
-            true
-        } else {
-            false
-        };
-        // if negate {
-        //     Ok(OperandContainer::from(Operand::Negate(Box::new(Self::parse_expression(token)?)))
-        // } else {
-        //     Self::parse_expression(token)
-        // }
-        todo!()
+        Ok(Val::Expression(Box::new(
+            if let Rule::NOT_OP = token.as_rule() {
+                OperandContainer::from(Operand::Negate(Box::new(Self::parse_expression(
+                    pairs.next().unwrap(),
+                )?)))
+            } else {
+                Self::parse_expression(token)?
+            },
+        )))
     }
 
     fn parse_literal(token: Pair) -> RadeResult<Val> {
@@ -964,6 +961,215 @@ mod tests {
     }
 
     // ============================================
+    // Negative Index Tests (Python-style)
+    // ============================================
+
+    #[test]
+    fn test_field_index_negative_last_element_string() {
+        use serde_yaml_bw::Value as YamlValue;
+        // -1 should access the last element
+        let condition = ConditionParser::parse_condition("items[-1] == 'cherry'").unwrap();
+        let items = YamlValue::Sequence(vec![
+            YamlValue::String("apple".to_string()),
+            YamlValue::String("banana".to_string()),
+            YamlValue::String("cherry".to_string()),
+        ]);
+        let map = HashMap::from([("items".to_string(), items)]);
+        let event = Event::from(EventSerialized::new(map));
+        assert!(condition.evaluate(&event, &mut ResultMap::new()));
+    }
+
+    #[test]
+    fn test_field_index_negative_second_to_last_string() {
+        use serde_yaml_bw::Value as YamlValue;
+        // -2 should access the second to last element
+        let condition = ConditionParser::parse_condition("items[-2] == 'banana'").unwrap();
+        let items = YamlValue::Sequence(vec![
+            YamlValue::String("apple".to_string()),
+            YamlValue::String("banana".to_string()),
+            YamlValue::String("cherry".to_string()),
+        ]);
+        let map = HashMap::from([("items".to_string(), items)]);
+        let event = Event::from(EventSerialized::new(map));
+        assert!(condition.evaluate(&event, &mut ResultMap::new()));
+    }
+
+    #[test]
+    fn test_field_index_negative_third_to_last_string() {
+        use serde_yaml_bw::Value as YamlValue;
+        // -3 should access the third to last element (first in a 3-element list)
+        let condition = ConditionParser::parse_condition("items[-3] == 'apple'").unwrap();
+        let items = YamlValue::Sequence(vec![
+            YamlValue::String("apple".to_string()),
+            YamlValue::String("banana".to_string()),
+            YamlValue::String("cherry".to_string()),
+        ]);
+        let map = HashMap::from([("items".to_string(), items)]);
+        let event = Event::from(EventSerialized::new(map));
+        assert!(condition.evaluate(&event, &mut ResultMap::new()));
+    }
+
+    #[test]
+    fn test_field_index_negative_last_element_int() {
+        use serde_yaml_bw::Value as YamlValue;
+        // -1 should access the last element
+        let condition = ConditionParser::parse_condition("numbers[-1] == 30").unwrap();
+        let numbers = YamlValue::Sequence(vec![
+            YamlValue::Number(10.into()),
+            YamlValue::Number(20.into()),
+            YamlValue::Number(30.into()),
+        ]);
+        let map = HashMap::from([("numbers".to_string(), numbers)]);
+        let event = Event::from(EventSerialized::new(map));
+        assert!(condition.evaluate(&event, &mut ResultMap::new()));
+    }
+
+    #[test]
+    fn test_field_index_negative_second_to_last_int() {
+        use serde_yaml_bw::Value as YamlValue;
+        // -2 should access the second to last element
+        let condition = ConditionParser::parse_condition("numbers[-2] == 20").unwrap();
+        let numbers = YamlValue::Sequence(vec![
+            YamlValue::Number(10.into()),
+            YamlValue::Number(20.into()),
+            YamlValue::Number(30.into()),
+        ]);
+        let map = HashMap::from([("numbers".to_string(), numbers)]);
+        let event = Event::from(EventSerialized::new(map));
+        assert!(condition.evaluate(&event, &mut ResultMap::new()));
+    }
+
+    #[test]
+    fn test_field_index_negative_out_of_bounds() {
+        use serde_yaml_bw::Value as YamlValue;
+        // -4 is out of bounds for a 3-element list
+        let condition = ConditionParser::parse_condition("items[-4] == 'missing'").unwrap();
+        let items = YamlValue::Sequence(vec![
+            YamlValue::String("apple".to_string()),
+            YamlValue::String("banana".to_string()),
+            YamlValue::String("cherry".to_string()),
+        ]);
+        let map = HashMap::from([("items".to_string(), items)]);
+        let event = Event::from(EventSerialized::new(map));
+        // Out of bounds should evaluate to false (error case)
+        assert!(!condition.evaluate(&event, &mut ResultMap::new()));
+    }
+
+    #[test]
+    fn test_field_index_negative_single_element_list() {
+        use serde_yaml_bw::Value as YamlValue;
+        // -1 on a single element list should return that element
+        let condition = ConditionParser::parse_condition("items[-1] == 'only'").unwrap();
+        let items = YamlValue::Sequence(vec![YamlValue::String("only".to_string())]);
+        let map = HashMap::from([("items".to_string(), items)]);
+        let event = Event::from(EventSerialized::new(map));
+        assert!(condition.evaluate(&event, &mut ResultMap::new()));
+    }
+
+    #[test]
+    fn test_field_index_negative_comparison() {
+        use serde_yaml_bw::Value as YamlValue;
+        // Compare last element with a value using >
+        let condition = ConditionParser::parse_condition("numbers[-1] > 25").unwrap();
+        let numbers = YamlValue::Sequence(vec![
+            YamlValue::Number(10.into()),
+            YamlValue::Number(20.into()),
+            YamlValue::Number(30.into()),
+        ]);
+        let map = HashMap::from([("numbers".to_string(), numbers)]);
+        let event = Event::from(EventSerialized::new(map));
+        assert!(condition.evaluate(&event, &mut ResultMap::new()));
+    }
+
+    #[test]
+    fn test_field_index_negative_in_complex_condition() {
+        use serde_yaml_bw::Value as YamlValue;
+        // Use negative index in AND condition
+        let condition =
+            ConditionParser::parse_condition("items[0] == 'start' && items[-1] == 'end'").unwrap();
+        let items = YamlValue::Sequence(vec![
+            YamlValue::String("start".to_string()),
+            YamlValue::String("middle".to_string()),
+            YamlValue::String("end".to_string()),
+        ]);
+        let map = HashMap::from([("items".to_string(), items)]);
+        let event = Event::from(EventSerialized::new(map));
+        assert!(condition.evaluate(&event, &mut ResultMap::new()));
+    }
+
+    #[test]
+    fn test_field_index_negative_in_or_condition() {
+        use serde_yaml_bw::Value as YamlValue;
+        // Use negative index in OR condition
+        let condition =
+            ConditionParser::parse_condition("items[-1] == 'wrong' || items[-2] == 'middle'")
+                .unwrap();
+        let items = YamlValue::Sequence(vec![
+            YamlValue::String("start".to_string()),
+            YamlValue::String("middle".to_string()),
+            YamlValue::String("end".to_string()),
+        ]);
+        let map = HashMap::from([("items".to_string(), items)]);
+        let event = Event::from(EventSerialized::new(map));
+        assert!(condition.evaluate(&event, &mut ResultMap::new()));
+    }
+
+    #[test]
+    fn test_field_index_negative_neq() {
+        use serde_yaml_bw::Value as YamlValue;
+        let condition = ConditionParser::parse_condition("items[-1] != 'wrong'").unwrap();
+        let items = YamlValue::Sequence(vec![
+            YamlValue::String("apple".to_string()),
+            YamlValue::String("banana".to_string()),
+        ]);
+        let map = HashMap::from([("items".to_string(), items)]);
+        let event = Event::from(EventSerialized::new(map));
+        assert!(condition.evaluate(&event, &mut ResultMap::new()));
+    }
+
+    #[test]
+    fn test_field_index_negative_parse_only() {
+        let condition = ConditionParser::parse_condition("arr[-1] == 'test'");
+        assert!(condition.is_ok());
+    }
+
+    #[test]
+    fn test_field_index_negative_parse_larger_negative() {
+        let condition = ConditionParser::parse_condition("arr[-100] == 'test'");
+        assert!(condition.is_ok());
+    }
+
+    #[test]
+    fn test_field_index_mixed_positive_and_negative() {
+        use serde_yaml_bw::Value as YamlValue;
+        // items[0] and items[-3] should be the same for a 3-element list
+        let condition =
+            ConditionParser::parse_condition("items[0] == 'apple' && items[-3] == 'apple'")
+                .unwrap();
+        let items = YamlValue::Sequence(vec![
+            YamlValue::String("apple".to_string()),
+            YamlValue::String("banana".to_string()),
+            YamlValue::String("cherry".to_string()),
+        ]);
+        let map = HashMap::from([("items".to_string(), items)]);
+        let event = Event::from(EventSerialized::new(map));
+        assert!(condition.evaluate(&event, &mut ResultMap::new()));
+    }
+
+    #[test]
+    fn test_field_index_negative_with_regex() {
+        use serde_yaml_bw::Value as YamlValue;
+        let condition = ConditionParser::parse_condition("items[-1] =~ /^end/").unwrap();
+        let items = YamlValue::Sequence(vec![
+            YamlValue::String("start_item".to_string()),
+            YamlValue::String("end_item".to_string()),
+        ]);
+        let map = HashMap::from([("items".to_string(), items)]);
+        let event = Event::from(EventSerialized::new(map));
+        assert!(condition.evaluate(&event, &mut ResultMap::new()));
+    }
+
+    // ============================================
     // Regex Tests
     // ============================================
 
@@ -1283,6 +1489,254 @@ mod tests {
         let condition = ConditionParser::parse_condition("text =~ /line1$/m").unwrap();
         let map = HashMap::from([("text".to_string(), "line1\nline2\nline3".into())]);
         let event = Event::from(EventSerialized::new(map));
+        assert!(condition.evaluate(&event, &mut ResultMap::new()));
+    }
+
+    // ============================================
+    // Parenthesis Expression Tests
+    // ============================================
+
+    #[test]
+    fn test_parenthesis_simple_condition() {
+        let condition = ConditionParser::parse_condition("(a == 1)").unwrap();
+        let map = HashMap::from([("a".to_string(), 1.into())]);
+        let event = Event::from(EventSerialized::new(map));
+        assert!(condition.evaluate(&event, &mut ResultMap::new()));
+    }
+
+    #[test]
+    fn test_parenthesis_simple_condition_false() {
+        let condition = ConditionParser::parse_condition("(a == 1)").unwrap();
+        let map = HashMap::from([("a".to_string(), 2.into())]);
+        let event = Event::from(EventSerialized::new(map));
+        assert!(!condition.evaluate(&event, &mut ResultMap::new()));
+    }
+
+    #[test]
+    fn test_parenthesis_changes_precedence_or_and() {
+        // Without parentheses: a || b && c means a || (b && c)
+        // With parentheses: (a || b) && c
+        let condition = ConditionParser::parse_condition("(a == 1 || b == 2) && c == 3").unwrap();
+        let map = HashMap::from([
+            ("a".to_string(), 1.into()),
+            ("b".to_string(), 99.into()),
+            ("c".to_string(), 3.into()),
+        ]);
+        let event = Event::from(EventSerialized::new(map));
+        // (true || false) && true = true && true = true
+        assert!(condition.evaluate(&event, &mut ResultMap::new()));
+    }
+
+    #[test]
+    fn test_parenthesis_changes_precedence_or_and_false() {
+        let condition = ConditionParser::parse_condition("(a == 1 || b == 2) && c == 3").unwrap();
+        let map = HashMap::from([
+            ("a".to_string(), 99.into()),
+            ("b".to_string(), 99.into()),
+            ("c".to_string(), 3.into()),
+        ]);
+        let event = Event::from(EventSerialized::new(map));
+        // (false || false) && true = false && true = false
+        assert!(!condition.evaluate(&event, &mut ResultMap::new()));
+    }
+
+    #[test]
+    fn test_parenthesis_nested_and() {
+        let condition = ConditionParser::parse_condition("a == 1 && (b == 2 && c == 3)").unwrap();
+        let map = HashMap::from([
+            ("a".to_string(), 1.into()),
+            ("b".to_string(), 2.into()),
+            ("c".to_string(), 3.into()),
+        ]);
+        let event = Event::from(EventSerialized::new(map));
+        assert!(condition.evaluate(&event, &mut ResultMap::new()));
+    }
+
+    #[test]
+    fn test_parenthesis_nested_or() {
+        let condition = ConditionParser::parse_condition("a == 1 || (b == 2 || c == 3)").unwrap();
+        let map = HashMap::from([
+            ("a".to_string(), 99.into()),
+            ("b".to_string(), 99.into()),
+            ("c".to_string(), 3.into()),
+        ]);
+        let event = Event::from(EventSerialized::new(map));
+        // false || (false || true) = false || true = true
+        assert!(condition.evaluate(&event, &mut ResultMap::new()));
+    }
+
+    #[test]
+    fn test_parenthesis_double_nested() {
+        let condition = ConditionParser::parse_condition("((a == 1))").unwrap();
+        let map = HashMap::from([("a".to_string(), 1.into())]);
+        let event = Event::from(EventSerialized::new(map));
+        assert!(condition.evaluate(&event, &mut ResultMap::new()));
+    }
+
+    #[test]
+    fn test_parenthesis_complex_nested() {
+        let condition =
+            ConditionParser::parse_condition("((a == 1 || b == 2) && (c == 3 || d == 4))").unwrap();
+        let map = HashMap::from([
+            ("a".to_string(), 1.into()),
+            ("b".to_string(), 99.into()),
+            ("c".to_string(), 99.into()),
+            ("d".to_string(), 4.into()),
+        ]);
+        let event = Event::from(EventSerialized::new(map));
+        // ((true || false) && (false || true)) = (true && true) = true
+        assert!(condition.evaluate(&event, &mut ResultMap::new()));
+    }
+
+    #[test]
+    fn test_parenthesis_negation() {
+        let condition = ConditionParser::parse_condition("!(a == 1)").unwrap();
+        let map = HashMap::from([("a".to_string(), 1.into())]);
+        let event = Event::from(EventSerialized::new(map));
+        // !(true) = false
+        assert!(!condition.evaluate(&event, &mut ResultMap::new()));
+    }
+
+    #[test]
+    fn test_parenthesis_negation_false_becomes_true() {
+        let condition = ConditionParser::parse_condition("!(a == 1)").unwrap();
+        let map = HashMap::from([("a".to_string(), 2.into())]);
+        let event = Event::from(EventSerialized::new(map));
+        // !(false) = true
+        assert!(condition.evaluate(&event, &mut ResultMap::new()));
+    }
+
+    #[test]
+    fn test_parenthesis_negation_complex() {
+        let condition = ConditionParser::parse_condition("!(a == 1 && b == 2)").unwrap();
+        let map = HashMap::from([("a".to_string(), 1.into()), ("b".to_string(), 99.into())]);
+        let event = Event::from(EventSerialized::new(map));
+        // !(true && false) = !(false) = true
+        assert!(condition.evaluate(&event, &mut ResultMap::new()));
+    }
+
+    #[test]
+    fn test_parenthesis_negation_or() {
+        let condition = ConditionParser::parse_condition("!(a == 1 || b == 2)").unwrap();
+        let map = HashMap::from([("a".to_string(), 99.into()), ("b".to_string(), 99.into())]);
+        let event = Event::from(EventSerialized::new(map));
+        // !(false || false) = !(false) = true
+        assert!(condition.evaluate(&event, &mut ResultMap::new()));
+    }
+
+    #[test]
+    fn test_parenthesis_negation_combined_with_and() {
+        let condition = ConditionParser::parse_condition("!(a == 1) && b == 2").unwrap();
+        let map = HashMap::from([("a".to_string(), 99.into()), ("b".to_string(), 2.into())]);
+        let event = Event::from(EventSerialized::new(map));
+        // !(false) && true = true && true = true
+        assert!(condition.evaluate(&event, &mut ResultMap::new()));
+    }
+
+    #[test]
+    fn test_parenthesis_negation_combined_with_or() {
+        let condition = ConditionParser::parse_condition("!(a == 1) || b == 2").unwrap();
+        let map = HashMap::from([("a".to_string(), 1.into()), ("b".to_string(), 2.into())]);
+        let event = Event::from(EventSerialized::new(map));
+        // !(true) || true = false || true = true
+        assert!(condition.evaluate(&event, &mut ResultMap::new()));
+    }
+
+    #[test]
+    fn test_parenthesis_multiple_negations() {
+        let condition = ConditionParser::parse_condition("!(a == 1) && !(b == 2)").unwrap();
+        let map = HashMap::from([("a".to_string(), 99.into()), ("b".to_string(), 99.into())]);
+        let event = Event::from(EventSerialized::new(map));
+        // !(false) && !(false) = true && true = true
+        println!("condition: {:?}", condition);
+        assert!(condition.evaluate(&event, &mut ResultMap::new()));
+    }
+
+    #[test]
+    fn test_parenthesis_with_comparison_operators() {
+        let condition = ConditionParser::parse_condition("(a > 5) && (b < 10)").unwrap();
+        let map = HashMap::from([("a".to_string(), 10.into()), ("b".to_string(), 5.into())]);
+        let event = Event::from(EventSerialized::new(map));
+        // (true) && (true) = true
+        assert!(condition.evaluate(&event, &mut ResultMap::new()));
+    }
+
+    #[test]
+    fn test_parenthesis_with_string_comparison() {
+        let condition =
+            ConditionParser::parse_condition("(name == 'alice') || (name == 'bob')").unwrap();
+        let map = HashMap::from([("name".to_string(), "bob".into())]);
+        let event = Event::from(EventSerialized::new(map));
+        assert!(condition.evaluate(&event, &mut ResultMap::new()));
+    }
+
+    #[test]
+    fn test_parenthesis_with_regex() {
+        let condition = ConditionParser::parse_condition("(name =~ /^test/) && active").unwrap();
+        let map = HashMap::from([
+            ("name".to_string(), "test_user".into()),
+            ("active".to_string(), true.into()),
+        ]);
+        let event = Event::from(EventSerialized::new(map));
+        assert!(condition.evaluate(&event, &mut ResultMap::new()));
+    }
+
+    #[test]
+    fn test_parenthesis_deeply_nested() {
+        let condition =
+            ConditionParser::parse_condition("(((a == 1) && (b == 2)) || ((c == 3) && (d == 4)))")
+                .unwrap();
+        let map = HashMap::from([
+            ("a".to_string(), 99.into()),
+            ("b".to_string(), 99.into()),
+            ("c".to_string(), 3.into()),
+            ("d".to_string(), 4.into()),
+        ]);
+        let event = Event::from(EventSerialized::new(map));
+        // (((false) && (false)) || ((true) && (true))) = (false || true) = true
+        assert!(condition.evaluate(&event, &mut ResultMap::new()));
+    }
+
+    #[test]
+    fn test_parenthesis_parse_only() {
+        let condition = ConditionParser::parse_condition("(a == 1)");
+        assert!(condition.is_ok());
+    }
+
+    #[test]
+    fn test_parenthesis_negation_parse_only() {
+        let condition = ConditionParser::parse_condition("!(a == 1)");
+        assert!(condition.is_ok());
+    }
+
+    #[test]
+    fn test_parenthesis_nested_parse_only() {
+        let condition = ConditionParser::parse_condition("((a == 1) && (b == 2))");
+        assert!(condition.is_ok());
+    }
+
+    #[test]
+    fn test_parenthesis_with_whitespace() {
+        let condition = ConditionParser::parse_condition("( a == 1 )").unwrap();
+        let map = HashMap::from([("a".to_string(), 1.into())]);
+        let event = Event::from(EventSerialized::new(map));
+        assert!(condition.evaluate(&event, &mut ResultMap::new()));
+    }
+
+    #[test]
+    fn test_parenthesis_boolean_field() {
+        let condition = ConditionParser::parse_condition("(enabled)").unwrap();
+        let map = HashMap::from([("enabled".to_string(), true.into())]);
+        let event = Event::from(EventSerialized::new(map));
+        assert!(condition.evaluate(&event, &mut ResultMap::new()));
+    }
+
+    #[test]
+    fn test_parenthesis_negated_boolean_field() {
+        let condition = ConditionParser::parse_condition("!(disabled)").unwrap();
+        let map = HashMap::from([("disabled".to_string(), false.into())]);
+        let event = Event::from(EventSerialized::new(map));
+        // !(false) = true
         assert!(condition.evaluate(&event, &mut ResultMap::new()));
     }
 }

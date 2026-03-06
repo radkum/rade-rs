@@ -54,7 +54,6 @@ RADE is built to empower security analysts, malware researchers, and endpoint pr
 
 
 # TODO
-- add parenthesis expressions
 - add functions
 - a lot of tests to rade-cli
 - solve todos

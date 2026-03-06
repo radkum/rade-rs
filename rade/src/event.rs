@@ -116,41 +116,41 @@ impl Event {
             .insert("name".to_string(), FatString::from(name.to_string()));
     }
 
-    pub fn get_int_field(&self, field_name: &FatString) -> RadeResult<i64> {
+    pub fn get_int_field(&self, field_name: &String) -> RadeResult<i64> {
         self.numbers
-            .get(field_name.lowercased())
+            .get(field_name)
             .copied()
             .ok_or_else(|| format!("Int field not found").into())
     }
 
-    pub fn get_bool_field(&self, field_name: &FatString) -> RadeResult<bool> {
+    pub fn get_bool_field(&self, field_name: &String) -> RadeResult<bool> {
         self.bools
-            .get(field_name.lowercased())
+            .get(field_name)
             .copied()
             .ok_or_else(|| format!("Bool field not found").into())
     }
 
-    pub fn get_str_field(&self, field_name: &FatString) -> RadeResult<&FatString> {
+    pub fn get_str_field(&self, field_name: &String) -> RadeResult<&FatString> {
         self.strings
-            .get(field_name.lowercased())
+            .get(field_name)
             .ok_or_else(|| format!("Str field not found").into())
     }
 
-    pub fn get_strlist_field(&self, field_name: &FatString) -> RadeResult<&Vec<FatString>> {
+    pub fn get_strlist_field(&self, field_name: &String) -> RadeResult<&Vec<FatString>> {
         self.string_lists
-            .get(field_name.lowercased())
+            .get(field_name)
             .ok_or_else(|| format!("Str list not found").into())
     }
 
-    pub fn get_intlist_field(&self, field_name: &FatString) -> RadeResult<&Vec<i64>> {
+    pub fn get_intlist_field(&self, field_name: &String) -> RadeResult<&Vec<i64>> {
         self.number_lists
-            .get(field_name.lowercased())
+            .get(field_name)
             .ok_or_else(|| format!("Int list not found").into())
     }
 
-    pub fn get_field(&self, field_name: &FatString) -> RadeResult<&Val> {
+    pub fn get_field(&self, field_name: &String) -> RadeResult<&Val> {
         self.all
-            .get(field_name.lowercased())
+            .get(field_name)
             .ok_or_else(|| format!("Field not found").into())
     }
 }

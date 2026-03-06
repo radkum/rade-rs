@@ -19,7 +19,7 @@ use serde_yaml_bw::Value as YamlValue;
 pub use str::*;
 pub use str_list::*;
 
-use crate::{Event, FatString, InsensitiveFlag, RadeResult};
+use crate::{Event, FatString, InsensitiveFlag, OperandContainer, RadeResult, ResultMap};
 
 #[derive(Debug, Deserialize, Serialize, PartialEq, Clone, Hash)]
 pub enum Comparator {
@@ -99,7 +99,11 @@ pub trait Cast {
     fn as_f64<'a>(&'a self, _event: &'a Event) -> RadeResult<f64> {
         Err("Not implemented".into())
     }
-    fn as_bool<'a>(&'a self, _event: &'a Event) -> RadeResult<bool> {
+    fn as_bool<'a>(
+        &'a self,
+        _event: &'a Event,
+        _cache: Option<&mut ResultMap>,
+    ) -> RadeResult<bool> {
         Err("Not implemented".into())
     }
 
@@ -132,7 +136,7 @@ pub trait Compare {
 }
 
 //type FnName = String;
-#[derive(Debug, PartialEq, Clone, Hash)]
+#[derive(Debug, PartialEq, Clone, Hash, Serialize, Deserialize)]
 pub enum Val {
     Bool(Bool),
     Int(Int),
@@ -143,6 +147,7 @@ pub enum Val {
     Regex(RadeRegex),
     Field(Field),
     FieldIndex(Field, i64),
+    Expression(Box<OperandContainer>),
     //Fn(FnName, Vec<Val>)
 }
 
@@ -151,6 +156,7 @@ impl Val {
         match self {
             Val::Bool(_) => Ok(self),
             Val::Field(_) => Ok(self),
+            Val::Expression(_) => Ok(self),
             _ => Err(format!("Not a boolean: {:?}", self).into()),
         }
     }
@@ -173,8 +179,9 @@ impl Eq for Val {
             Val::Bool(b) => b.equal(elem, event, comp_flag),
             Val::Regex(_) => Err("Eq for regex not implemented".into()),
             Val::FieldIndex(field, index) => {
-                field.get(event, *index)?.equal(elem, event, comp_flag)
+                field.get_val(event, *index)?.equal(elem, event, comp_flag)
             },
+            Val::Expression(_) => Err("Eq for expression not implemented".into()),
         }
     }
 
@@ -193,7 +200,10 @@ impl Eq for Val {
             Val::StrList(_) => Err("Neq for strlist not implemented".into()),
             Val::Regex(_) => Err("Neq for regex not implemented".into()),
             Val::Field(field) => field.neq(elem, event, comp_flag),
-            Val::FieldIndex(field, index) => field.get(event, *index)?.neq(elem, event, comp_flag),
+            Val::FieldIndex(field, index) => {
+                field.get_val(event, *index)?.neq(elem, event, comp_flag)
+            },
+            Val::Expression(_) => Err("Neq for expression not implemented".into()),
         }
     }
 }
@@ -218,6 +228,7 @@ impl Cast for Val {
             Val::Int(int) => int.as_i64(event),
             Val::Float(float) => float.as_i64(event),
             Val::Field(field) => field.as_i64(event),
+            Val::FieldIndex(f, index) => Ok(f.get_int(event, *index)?),
             _ => Err(format!("Cannot convert {:?} to i64", self).into()),
         }
     }
@@ -227,6 +238,7 @@ impl Cast for Val {
             Val::Int(int) => int.as_f64(event),
             Val::Float(float) => float.as_f64(event),
             Val::Field(field) => field.as_f64(event),
+            Val::FieldIndex(f, index) => Ok(f.get_int(event, *index)? as f64),
             _ => Err(format!("Cannot convert {:?} to f64", self).into()),
         }
     }
@@ -240,6 +252,7 @@ impl Cast for Val {
             Val::Str(str) => str.as_str(event, comp_flag),
             Val::StrList(str_list) => str_list.as_str(event, comp_flag),
             Val::Field(f) => f.as_str(event, comp_flag),
+            Val::FieldIndex(f, index) => Ok(f.get_str(event, *index)?.choose(comp_flag)),
             _ => Err(format!("Cannot convert {:?} to &str", self).into()),
         }
     }
@@ -264,10 +277,13 @@ impl Cast for Val {
         }
     }
 
-    fn as_bool<'a>(&'a self, event: &'a Event) -> RadeResult<bool> {
+    fn as_bool<'a>(&'a self, event: &'a Event, cache: Option<&mut ResultMap>) -> RadeResult<bool> {
         match self {
-            Val::Bool(b) => b.as_bool(event),
-            Val::Field(f) => f.as_bool(event),
+            Val::Bool(b) => b.as_bool(event, None),
+            Val::Field(f) => f.as_bool(event, None),
+            Val::Expression(expr) => {
+                Ok(expr.evaluate(event, cache.unwrap_or(&mut ResultMap::new())))
+            },
             _ => Err("Type mismatch. Expected boolean.".into()),
         }
     }
@@ -290,9 +306,9 @@ impl Compare for Val {
             Val::Field(field) => event
                 .get_field(&field.0)?
                 .cmp(elem, event, comparator, flag),
-            Val::FieldIndex(field, index) => {
-                field.get(event, *index)?.cmp(elem, event, comparator, flag)
-            },
+            Val::FieldIndex(field, index) => field
+                .get_val(event, *index)?
+                .cmp(elem, event, comparator, flag),
             _ => Err(format!("Cannot compare {:?} with {:?}", self, elem).into()),
         }
     }

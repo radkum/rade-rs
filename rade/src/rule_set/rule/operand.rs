@@ -1,14 +1,11 @@
 mod val;
-use std::{
-    collections::HashMap,
-    hash::{DefaultHasher, Hash, Hasher},
-};
+use std::hash::{DefaultHasher, Hash, Hasher};
 
 use serde::{Deserialize, Serialize};
 pub use val::{Cast, Comparator, RadeRegex, Val};
 use val::{Compare, Match};
 
-use crate::{Event, InsensitiveFlag};
+use crate::{Event, InsensitiveFlag, ResultMap};
 
 pub type OpHash = u64;
 
@@ -45,7 +42,7 @@ impl From<Operand> for OperandContainer {
 }
 
 impl OperandContainer {
-    pub fn evaluate(&self, event: &Event, cache: &mut HashMap<OpHash, bool>) -> bool {
+    pub fn evaluate(&self, event: &Event, cache: &mut ResultMap) -> bool {
         if let Some(cached_result) = cache.get(&self.hash()) {
             return *cached_result;
         }
@@ -73,8 +70,8 @@ impl OperandContainer {
             },
             Operand::Cmp(val1, val2, comparator, flag) => val1.cmp(val2, event, comparator, flag),
             Operand::Match(val, regex, comparator) => regex.match_(val, event, comparator),
-            Operand::Val(val) => val.as_bool(event),
-            Operand::Negate(op) => todo!(),
+            Operand::Val(val) => val.as_bool(event, Some(cache)),
+            Operand::Negate(op) => Ok(!op.evaluate(event, cache)),
         };
 
         let e = res.unwrap_or_else(|e| {

@@ -181,5 +181,5 @@ NMATCH = { "!~" }
 AND_OP = _{ "&&" }
 OR_OP  = _{ "||" }
 
-NOT_OP = _{ "!" }
+NOT_OP = { "!" }
 SUB_OP = _{ "-" }

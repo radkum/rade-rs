@@ -2,12 +2,11 @@ use serde::{Deserialize, Serialize};
 
 use super::{Cast, Eq, InsensitiveFlag, Val};
 use crate::{
-    Event, FatString, RadeResult,
+    Event, FatString, RadeResult, ResultMap,
     rule_set::rule::operand::val::{Compare, Int, Str},
 };
-
 #[derive(Debug, PartialEq, Clone, Hash, Serialize, Deserialize)]
-pub struct Field(pub FatString);
+pub struct Field(pub String);
 impl From<String> for Field {
     fn from(s: String) -> Self {
         Field::new(s)
@@ -21,17 +20,31 @@ impl From<&str> for Field {
 
 impl Field {
     pub fn new(field_name: String) -> Self {
-        Field(FatString::from(field_name.to_ascii_lowercase()))
+        Field(String::from(field_name))
     }
 
     pub fn plain(&self) -> &str {
-        self.0.plain()
+        &self.0
     }
 
-    pub fn get<'a>(&self, event: &'a Event, index: i64) -> RadeResult<Val> {
+    pub fn get_val<'a>(&self, event: &'a Event, index: i64) -> RadeResult<Val> {
         match event.get_field(&self.0)? {
-            Val::StrList(str_list) => Ok(Val::Str(Str(str_list.get(index as usize)?.clone()))),
-            Val::IntList(int_list) => Ok(Val::Int(Int(*int_list.get(index as usize)?))),
+            Val::StrList(str_list) => Ok(Val::Str(Str(str_list.get(index)?.clone()))),
+            Val::IntList(int_list) => Ok(Val::Int(Int(*int_list.get(index)?))),
+            _ => Err(format!("Field index {} not found", index).into()),
+        }
+    }
+
+    pub fn get_str<'a>(&self, event: &'a Event, index: i64) -> RadeResult<&'a FatString> {
+        match event.get_field(&self.0)? {
+            Val::StrList(str_list) => Ok(str_list.get(index)?),
+            _ => Err(format!("Field index {} not found", index).into()),
+        }
+    }
+
+    pub fn get_int<'a>(&self, event: &'a Event, index: i64) -> RadeResult<i64> {
+        match event.get_field(&self.0)? {
+            Val::IntList(int_list) => Ok(*int_list.get(index)?),
             _ => Err(format!("Field index {} not found", index).into()),
         }
     }
@@ -60,7 +73,7 @@ impl Cast for Field {
         event.get_int_field(&self.0)
     }
 
-    fn as_bool<'a>(&'a self, event: &'a Event) -> RadeResult<bool> {
+    fn as_bool<'a>(&'a self, event: &'a Event, _cache: Option<&mut ResultMap>) -> RadeResult<bool> {
         event.get_bool_field(&self.0)
     }
 

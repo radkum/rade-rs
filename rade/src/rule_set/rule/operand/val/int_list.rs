@@ -21,10 +21,24 @@ impl IntList {
         Ok(i1 == i2)
     }
 
-    pub fn get(&self, index: usize) -> RadeResult<&i64> {
-        self.0
-            .get(index)
-            .ok_or_else(|| format!("Index out of bounds").into())
+    pub fn get(&self, index: i64) -> RadeResult<&i64> {
+        let len = self.0.len() as i64;
+        let actual_index = if index < 0 {
+            // Python-style negative indexing: -1 is last element, -2 is second to last,
+            // etc.
+            let positive_index = len + index;
+            if positive_index < 0 {
+                return Err(
+                    format!("Index {} out of bounds for list of length {}", index, len).into(),
+                );
+            }
+            positive_index as usize
+        } else {
+            index as usize
+        };
+        self.0.get(actual_index).ok_or_else(|| {
+            format!("Index {} out of bounds for list of length {}", index, len).into()
+        })
     }
 }
 
