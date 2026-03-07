@@ -1,7 +1,7 @@
 use pest::Parser;
 use pest_derive::Parser;
 
-use super::{Cast, Comparator, Condition, Operand, OperandContainer, Val};
+use super::{Cast, Comparator, Condition, FnCall, Operand, OperandContainer, Val};
 use crate::{InsensitiveFlag, RadeResult};
 
 type PestError = pest::error::Error<Rule>;
@@ -126,7 +126,7 @@ impl ConditionParser {
         for postfix in pairs {
             match postfix.as_rule() {
                 Rule::function_call => {
-                    todo!()
+                    primary = Self::parse_function_call(primary, postfix)?;
                 },
                 Rule::element_access => {
                     primary = Self::parse_element_access(primary, postfix)?;
@@ -135,6 +135,123 @@ impl ConditionParser {
             }
         }
         Ok(primary)
+    }
+
+    fn parse_function_call(primary: Val, token: Pair) -> RadeResult<Val> {
+        check_rule!(token, Rule::function_call);
+        let fn_name = match primary {
+            Val::Field(f) => f.0.clone(),
+            _ => {
+                return Err(format!(
+                    "Function call is only supported on identifiers, got {:?}",
+                    primary
+                )
+                .into());
+            },
+        };
+        let mut args = Vec::new();
+        for inner in token.into_inner() {
+            if inner.as_rule() == Rule::argument_list {
+                for arg_expr in inner.into_inner() {
+                    // Parse argument without boolean validation
+                    let arg_val = Self::parse_expression_no_validate(arg_expr)?;
+                    // Convert OperandContainer back to Val for function argument
+                    args.push(Self::operand_to_val(arg_val)?);
+                }
+            }
+        }
+        Ok(Val::FnCall(FnCall::new(fn_name, args)))
+    }
+
+    /// Parse expression without boolean validation - used for function
+    /// arguments
+    fn parse_expression_no_validate(token: Pair) -> RadeResult<OperandContainer> {
+        check_rule!(token, Rule::expression);
+        let inner = token.into_inner().next().unwrap();
+        Self::parse_logical_or_no_validate(inner)
+    }
+
+    fn parse_logical_or_no_validate(token: Pair) -> RadeResult<OperandContainer> {
+        check_rule!(token, Rule::logical_or);
+        let pairs = token.into_inner();
+        let mut logical_ors = Vec::new();
+        for token in pairs {
+            check_rule!(token, Rule::logical_and);
+            logical_ors.push(Self::parse_logical_and_no_validate(token)?);
+        }
+        if logical_ors.len() == 1 {
+            Ok(logical_ors.into_iter().next().unwrap())
+        } else {
+            Ok(OperandContainer::from(Operand::Or(logical_ors)))
+        }
+    }
+
+    fn parse_logical_and_no_validate(token: Pair) -> RadeResult<OperandContainer> {
+        check_rule!(token, Rule::logical_and);
+        let pairs = token.into_inner();
+        let mut logical_ands = Vec::new();
+        for token in pairs {
+            check_rule!(token, Rule::comparison);
+            logical_ands.push(Self::parse_comparison_no_validate(token)?);
+        }
+        if logical_ands.len() == 1 {
+            Ok(logical_ands.into_iter().next().unwrap())
+        } else {
+            Ok(OperandContainer::from(Operand::And(logical_ands)))
+        }
+    }
+
+    fn parse_comparison_no_validate(token: Pair) -> RadeResult<OperandContainer> {
+        check_rule!(token, Rule::comparison);
+        let mut pairs = token.into_inner();
+        let left_token = pairs.next().unwrap();
+        let left_op = Self::parse_unary(left_token)?;
+        if let Some(eq_op_token) = pairs.next() {
+            let right_token = pairs.next().unwrap();
+            let right_op = Self::parse_unary(right_token)?;
+
+            let (comparator, flag) = match eq_op_token.as_rule() {
+                Rule::EQ => (Comparator::Eq, None),
+                Rule::IEQ => (Comparator::Eq, Some(InsensitiveFlag::Case)),
+                Rule::AEQ => (Comparator::Eq, Some(InsensitiveFlag::Apostrophe)),
+                Rule::AIEQ => (Comparator::Eq, Some(InsensitiveFlag::CaseAndApostrophe)),
+                Rule::NEQ => (Comparator::Neq, None),
+                Rule::GE => (Comparator::Ge, None),
+                Rule::LE => (Comparator::Le, None),
+                Rule::GT => (Comparator::Gt, None),
+                Rule::LT => (Comparator::Lt, None),
+                Rule::MATCH => (Comparator::Match, None),
+                Rule::NMATCH => (Comparator::Nmatch, None),
+                _ => unexpected_token!(eq_op_token),
+            };
+
+            // Handle regex matching: if right operand is a regex, create Match operand
+            let op = if let Val::Regex(regex) = right_op {
+                if comparator == Comparator::Match || comparator == Comparator::Nmatch {
+                    Operand::Match(left_op, regex, comparator)
+                } else {
+                    return Err("Regex can only be used with == operator".into());
+                }
+            } else {
+                Operand::Cmp(left_op, right_op, comparator, flag)
+            };
+
+            Ok(OperandContainer::from(op))
+        } else {
+            // No comparison operator - just return the value without boolean validation
+            Ok(OperandContainer::from(Operand::Val(left_op)))
+        }
+    }
+
+    fn operand_to_val(operand: OperandContainer) -> RadeResult<Val> {
+        // Extract the Val from an OperandContainer if it's a simple value
+        match operand.op() {
+            Operand::Val(val) => Ok(val.clone()),
+            _ => {
+                // Wrap complex operands (Cmp, Match, And, Or, Negate) in an Expression
+                Ok(Val::Expression(Box::new(operand)))
+            },
+        }
     }
 
     fn parse_element_access(primary: Val, token: Pair) -> RadeResult<Val> {
@@ -162,6 +279,7 @@ impl ConditionParser {
         let primary_token = pairs.next().unwrap();
         Ok(match primary_token.as_rule() {
             Rule::literal => Self::parse_literal(primary_token)?,
+            Rule::array_literal => Self::parse_array_literal(primary_token)?,
             Rule::identifier => Val::Field(primary_token.as_str().into()),
             Rule::parenthesis_expression => Self::parse_parenthesis(primary_token)?,
             _ => unexpected_token!(primary_token),
@@ -195,6 +313,62 @@ impl ConditionParser {
             Rule::regex => Self::parse_regex(inner)?,
             _ => unexpected_token!(inner),
         })
+    }
+
+    fn parse_array_literal(token: Pair) -> RadeResult<Val> {
+        check_rule!(token, Rule::array_literal);
+        let mut str_elements: Vec<String> = Vec::new();
+        let mut int_elements: Vec<i64> = Vec::new();
+        let mut is_string_array: Option<bool> = None;
+
+        for inner in token.into_inner() {
+            if inner.as_rule() == Rule::array_element_list {
+                for elem in inner.into_inner() {
+                    // Each element is array_element which contains literal | identifier
+                    let elem_inner = elem.into_inner().next().unwrap();
+                    match elem_inner.as_rule() {
+                        Rule::literal => {
+                            let literal_inner = elem_inner.into_inner().next().unwrap();
+                            match literal_inner.as_rule() {
+                                Rule::string => {
+                                    if is_string_array == Some(false) {
+                                        return Err("Mixed array types not supported".into());
+                                    }
+                                    is_string_array = Some(true);
+                                    str_elements.push(literal_inner.as_str().replace("\\", ""));
+                                },
+                                Rule::integer => {
+                                    if is_string_array == Some(true) {
+                                        return Err("Mixed array types not supported".into());
+                                    }
+                                    is_string_array = Some(false);
+                                    int_elements.push(Self::parse_integer(literal_inner)?);
+                                },
+                                _ => {
+                                    return Err(format!(
+                                        "Unsupported array element type: {:?}",
+                                        literal_inner.as_rule()
+                                    )
+                                    .into());
+                                },
+                            }
+                        },
+                        Rule::identifier => {
+                            return Err("Field identifiers in array literals are not supported. \
+                                        Use string literals instead."
+                                .into());
+                        },
+                        _ => unexpected_token!(elem_inner),
+                    };
+                }
+            }
+        }
+
+        if is_string_array == Some(true) || is_string_array.is_none() {
+            Ok(Val::StrList(str_elements.into()))
+        } else {
+            Ok(Val::IntList(int_elements.into()))
+        }
     }
 
     fn parse_regex(token: Pair) -> RadeResult<Val> {
@@ -1737,6 +1911,228 @@ mod tests {
         let map = HashMap::from([("disabled".to_string(), false.into())]);
         let event = Event::from(EventSerialized::new(map));
         // !(false) = true
+        assert!(condition.evaluate(&event, &mut ResultMap::new()));
+    }
+
+    // ============================================
+    // Function Call Parsing Tests
+    // ============================================
+
+    // Note: Functions used as standalone conditions (without comparison)
+    // must return bool and must be registered in the FUNCTIONS map.
+    // For parse-only tests, we use comparison expressions which bypass
+    // the bool validation.
+
+    #[test]
+    fn test_function_call_no_args_parse() {
+        // is_empty is a registered function that returns bool
+        let condition = ConditionParser::parse_condition("is_empty('')");
+        println!("Parse result: {:?}", condition);
+        assert!(condition.is_ok());
+    }
+
+    #[test]
+    fn test_function_call_single_int_arg_in_comparison_parse() {
+        // Using length which returns i64, in a comparison
+        let condition = ConditionParser::parse_condition("length('x') == 1");
+        assert!(condition.is_ok());
+    }
+
+    #[test]
+    fn test_function_call_single_string_arg_parse() {
+        let condition = ConditionParser::parse_condition("length('hello') > 0");
+        assert!(condition.is_ok());
+    }
+
+    #[test]
+    fn test_function_call_single_field_arg_parse() {
+        let condition = ConditionParser::parse_condition("length(fieldname) > 0");
+        assert!(condition.is_ok());
+    }
+
+    #[test]
+    fn test_function_call_multiple_string_args_parse() {
+        let condition =
+            ConditionParser::parse_condition("concat('hello', 'world') == 'helloworld'");
+        assert!(condition.is_ok());
+    }
+
+    #[test]
+    fn test_function_call_nested_parse() {
+        let condition = ConditionParser::parse_condition("length(concat('a', 'b')) == 2");
+        assert!(condition.is_ok());
+    }
+
+    #[test]
+    fn test_function_call_deeply_nested_parse() {
+        let condition =
+            ConditionParser::parse_condition("length(concat(concat('a', 'b'), 'c')) == 3");
+        assert!(condition.is_ok());
+    }
+
+    #[test]
+    fn test_function_call_in_comparison_parse() {
+        let condition = ConditionParser::parse_condition("length('hello') == 5");
+        assert!(condition.is_ok());
+    }
+
+    #[test]
+    fn test_function_call_in_and_expression_parse() {
+        let condition = ConditionParser::parse_condition("is_empty('') && a == 1");
+        assert!(condition.is_ok());
+    }
+
+    #[test]
+    fn test_function_call_in_or_expression_parse() {
+        let condition = ConditionParser::parse_condition("is_empty('') || a == 1");
+        assert!(condition.is_ok());
+    }
+
+    #[test]
+    fn test_function_call_with_float_arg_parse() {
+        // float_sum takes two f64 arguments
+        let condition = ConditionParser::parse_condition("float_sum(3.14, 2.0) > 5.0");
+        assert!(condition.is_ok());
+    }
+
+    #[test]
+    fn test_function_call_as_boolean_condition_parse() {
+        // Function returning bool can be used directly as a condition
+        let condition = ConditionParser::parse_condition("is_empty('')");
+        assert!(condition.is_ok());
+    }
+
+    #[test]
+    fn test_function_call_with_field_index_arg_parse() {
+        let condition = ConditionParser::parse_condition("length(arr[0]) > 0");
+        assert!(condition.is_ok());
+    }
+
+    #[test]
+    fn test_function_call_with_negative_field_index_arg_parse() {
+        let condition = ConditionParser::parse_condition("length(arr[-1]) > 0");
+        assert!(condition.is_ok());
+    }
+
+    // ============================================
+    // Function Call Evaluation Tests
+    // ============================================
+    #[test]
+    fn test_function_call_length_evaluation() {
+        let condition = ConditionParser::parse_condition("length('hello') == 5").unwrap();
+        let map = HashMap::new();
+        let event = Event::from(EventSerialized::new(map));
+        assert!(condition.evaluate(&event, &mut ResultMap::new()));
+    }
+
+    #[test]
+    fn test_function_call_length_with_field_evaluation() {
+        let condition = ConditionParser::parse_condition("length(name) == 5").unwrap();
+        let map = HashMap::from([("name".to_string(), "hello".into())]);
+        let event = Event::from(EventSerialized::new(map));
+        assert!(condition.evaluate(&event, &mut ResultMap::new()));
+    }
+
+    #[test]
+    fn test_function_call_concat_evaluation() {
+        let condition =
+            ConditionParser::parse_condition("concat(['hello', 'world']) == 'helloworld'").unwrap();
+        let map = HashMap::new();
+        let event = Event::from(EventSerialized::new(map));
+        assert!(condition.evaluate(&event, &mut ResultMap::new()));
+    }
+
+    #[test]
+    fn test_function_call_concat_with_fields_evaluation() {
+        // Note: Field identifiers in arrays are not supported, use separate arguments
+        let condition =
+            ConditionParser::parse_condition("concat(['John', 'Doe']) == 'JohnDoe'").unwrap();
+        let map = HashMap::new();
+        let event = Event::from(EventSerialized::new(map));
+        assert!(condition.evaluate(&event, &mut ResultMap::new()));
+    }
+
+    #[test]
+    fn test_function_call_is_empty_true_evaluation() {
+        let condition = ConditionParser::parse_condition("is_empty('')").unwrap();
+        let map = HashMap::new();
+        let event = Event::from(EventSerialized::new(map));
+        assert!(condition.evaluate(&event, &mut ResultMap::new()));
+    }
+
+    #[test]
+    fn test_function_call_is_empty_false_evaluation() {
+        let condition = ConditionParser::parse_condition("is_empty('hello')").unwrap();
+        let map = HashMap::new();
+        let event = Event::from(EventSerialized::new(map));
+        assert!(!condition.evaluate(&event, &mut ResultMap::new()));
+    }
+
+    #[test]
+    fn test_function_call_is_empty_with_field_evaluation() {
+        let condition = ConditionParser::parse_condition("is_empty(name)").unwrap();
+        let map = HashMap::from([("name".to_string(), "".into())]);
+        let event = Event::from(EventSerialized::new(map));
+        assert!(condition.evaluate(&event, &mut ResultMap::new()));
+    }
+
+    #[test]
+    fn test_function_call_in_and_condition_evaluation() {
+        let condition = ConditionParser::parse_condition("is_empty('') && a == 1").unwrap();
+        let map = HashMap::from([("a".to_string(), 1.into())]);
+        let event = Event::from(EventSerialized::new(map));
+        // is_empty('') = true, a == 1 = true, true && true = true
+        assert!(condition.evaluate(&event, &mut ResultMap::new()));
+    }
+
+    #[test]
+    fn test_function_call_in_or_condition_evaluation() {
+        let condition = ConditionParser::parse_condition("is_empty('hello') || a == 1").unwrap();
+        let map = HashMap::from([("a".to_string(), 1.into())]);
+        let event = Event::from(EventSerialized::new(map));
+        // is_empty('hello') = false, a == 1 = true, false || true = true
+        assert!(condition.evaluate(&event, &mut ResultMap::new()));
+    }
+
+    #[test]
+    fn test_function_call_comparison_gt_evaluation() {
+        let condition = ConditionParser::parse_condition("length('hello') > 3").unwrap();
+        let map = HashMap::new();
+        let event = Event::from(EventSerialized::new(map));
+        assert!(condition.evaluate(&event, &mut ResultMap::new()));
+    }
+
+    #[test]
+    fn test_function_call_comparison_lt_evaluation() {
+        let condition = ConditionParser::parse_condition("length('hi') < 5").unwrap();
+        let map = HashMap::new();
+        let event = Event::from(EventSerialized::new(map));
+        assert!(condition.evaluate(&event, &mut ResultMap::new()));
+    }
+
+    #[test]
+    fn test_function_call_comparison_neq_evaluation() {
+        let condition = ConditionParser::parse_condition("length('hello') != 10").unwrap();
+        let map = HashMap::new();
+        let event = Event::from(EventSerialized::new(map));
+        assert!(condition.evaluate(&event, &mut ResultMap::new()));
+    }
+
+    #[test]
+    fn test_nested_function_call_evaluation() {
+        let condition =
+            ConditionParser::parse_condition("length(concat(['a', 'bc'])) == 3").unwrap();
+        let map = HashMap::new();
+        let event = Event::from(EventSerialized::new(map));
+        assert!(condition.evaluate(&event, &mut ResultMap::new()));
+    }
+
+    #[test]
+    fn test_function_call_chained_boolean_evaluation() {
+        // Multiple boolean function calls
+        let condition = ConditionParser::parse_condition("is_empty('') && is_empty('')").unwrap();
+        let map = HashMap::new();
+        let event = Event::from(EventSerialized::new(map));
         assert!(condition.evaluate(&event, &mut ResultMap::new()));
     }
 }

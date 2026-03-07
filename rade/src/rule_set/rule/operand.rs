@@ -2,7 +2,7 @@ mod val;
 use std::hash::{DefaultHasher, Hash, Hasher};
 
 use serde::{Deserialize, Serialize};
-pub use val::{Cast, Comparator, RadeRegex, Val};
+pub use val::{Cast, Comparator, FnCall, RadeRegex, Val};
 use val::{Compare, Match};
 
 use crate::{Event, InsensitiveFlag, ResultMap};
@@ -42,6 +42,10 @@ impl From<Operand> for OperandContainer {
 }
 
 impl OperandContainer {
+    pub fn op(&self) -> &Operand {
+        &self.op
+    }
+
     pub fn evaluate(&self, event: &Event, cache: &mut ResultMap) -> bool {
         if let Some(cached_result) = cache.get(&self.hash()) {
             return *cached_result;

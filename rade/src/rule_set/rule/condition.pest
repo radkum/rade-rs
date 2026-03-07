@@ -29,6 +29,7 @@ postfix_op = _{
 
 primary = {
     literal
+    | array_literal
     | identifier
     | parenthesis_expression
 }
@@ -45,6 +46,21 @@ element_access = {
 
 argument_list = {
     expression ~ ("," ~ expression)*
+}
+
+////////////////////////////////////////////////////////////
+// 🔢 Array Literal
+////////////////////////////////////////////////////////////
+array_literal = {
+    "[" ~ array_element_list? ~ "]"
+}
+
+array_element_list = {
+    array_element ~ ("," ~ array_element)*
+}
+
+array_element = {
+    literal | identifier
 }
 
 ////////////////////////////////////////////////////////////

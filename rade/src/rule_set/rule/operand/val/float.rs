@@ -61,7 +61,7 @@ impl Compare for Float {
             return Err("Cannot use case-insensitive flag with numbers".into());
         }
         if let Val::Field(field) = elem {
-            field.cmp(&Val::Float(self.0.into()), event, &coparator.negate(), flag)
+            field.cmp(&Val::Float(self.0.into()), event, &coparator.swap(), flag)
         } else {
             let i1 = self.as_f64(event)?;
             let i2 = elem.as_f64(event)?;

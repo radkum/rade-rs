@@ -1,16 +1,19 @@
 mod bool;
 mod field;
 mod float;
+mod function;
 mod int;
 mod int_list;
 mod regex;
 mod serialization;
 mod str;
 mod str_list;
+mod val_type;
 
 pub use bool::*;
 pub use field::*;
 pub use float::*;
+pub use function::FnCall;
 pub use int::*;
 pub use int_list::*;
 pub use regex::RadeRegex;
@@ -18,6 +21,7 @@ use serde::{Deserialize, Serialize};
 use serde_yaml_bw::Value as YamlValue;
 pub use str::*;
 pub use str_list::*;
+use val_type::ValType;
 
 use crate::{Event, FatString, InsensitiveFlag, OperandContainer, RadeResult, ResultMap};
 
@@ -44,6 +48,20 @@ impl Comparator {
             Comparator::Le => Comparator::Gt,
             Comparator::Match => Comparator::Nmatch,
             Comparator::Nmatch => Comparator::Match,
+        }
+    }
+
+    /// Swap the comparator for operand swap (a op b → b swap(op) a)
+    pub fn swap(&self) -> Self {
+        match self {
+            Comparator::Eq => Comparator::Eq,
+            Comparator::Neq => Comparator::Neq,
+            Comparator::Gt => Comparator::Lt,
+            Comparator::Lt => Comparator::Gt,
+            Comparator::Ge => Comparator::Le,
+            Comparator::Le => Comparator::Ge,
+            Comparator::Match => Comparator::Match,
+            Comparator::Nmatch => Comparator::Nmatch,
         }
     }
 }
@@ -135,7 +153,6 @@ pub trait Compare {
     }
 }
 
-//type FnName = String;
 #[derive(Debug, PartialEq, Clone, Hash, Serialize, Deserialize)]
 pub enum Val {
     Bool(Bool),
@@ -148,16 +165,84 @@ pub enum Val {
     Field(Field),
     FieldIndex(Field, i64),
     Expression(Box<OperandContainer>),
-    //Fn(FnName, Vec<Val>)
+    FnCall(FnCall), //MethodCall(FnName, Vec<Val>)
 }
 
 impl Val {
+    pub fn fn_arg(&self, event: &Event, cache: &mut ResultMap) -> RadeResult<Val> {
+        // For now, we only evaluate expressions and function calls. In the future, we
+        // may want to evaluate fields as well.
+        match self {
+            Val::Field(Field(field_name)) => event.get_field(field_name).map(|v| v.clone()),
+            Val::FieldIndex(field, index) => field.get_val(event, *index),
+            Val::FnCall(fn_call) => fn_call.call(event, cache),
+            Val::Expression(_) => Err("Expression cannot be function argument".into()),
+            Val::Regex(_) => Err("Regex cannot be function argument".into()),
+            _ => Ok(self.clone()),
+        }
+    }
+
     pub fn validate_bool(self) -> RadeResult<Val> {
         match self {
             Val::Bool(_) => Ok(self),
             Val::Field(_) => Ok(self),
             Val::Expression(_) => Ok(self),
+            Val::FnCall(ref fn_call) => {
+                if fn_call.is_bool()? {
+                    Ok(self)
+                } else {
+                    Err(format!("Function {} does not return a boolean", fn_call.name()).into())
+                }
+            },
             _ => Err(format!("Not a boolean: {:?}", self).into()),
+        }
+    }
+
+    /// Convert Val to bool (for function arguments, without Event context)
+    pub fn to_bool(&self) -> RadeResult<bool> {
+        match self {
+            Val::Bool(b) => Ok(b.0),
+            _ => Err(format!("Cannot convert {:?} to bool", self).into()),
+        }
+    }
+
+    /// Convert Val to i64 (for function arguments, without Event context)
+    pub fn to_i64(&self) -> RadeResult<i64> {
+        match self {
+            Val::Int(i) => Ok(i.0),
+            _ => Err(format!("Cannot convert {:?} to i64", self).into()),
+        }
+    }
+
+    /// Convert Val to i64 (for function arguments, without Event context)
+    pub fn to_f64(&self) -> RadeResult<f64> {
+        match self {
+            Val::Float(f) => Ok(f.0),
+            _ => Err(format!("Cannot convert {:?} to f64", self).into()),
+        }
+    }
+
+    /// Convert Val to String (for function arguments, without Event context)
+    pub fn to_string(&self) -> RadeResult<String> {
+        match self {
+            Val::Str(s) => Ok(s.0.plain().to_string()),
+            _ => Err(format!("Cannot convert {:?} to String", self).into()),
+        }
+    }
+
+    /// Convert Val to String (for function arguments, without Event context)
+    pub fn to_int_list(&self) -> RadeResult<Vec<String>> {
+        match self {
+            Val::IntList(list) => Ok(list.0.iter().map(|i| i.to_string()).collect()),
+            _ => Err(format!("Cannot convert {:?} to Vec<String>", self).into()),
+        }
+    }
+
+    /// Convert Val to String (for function arguments, without Event context)
+    pub fn to_str_list(&self) -> RadeResult<Vec<String>> {
+        match self {
+            Val::StrList(list) => Ok(list.0.iter().map(|s| s.plain().to_string()).collect()),
+            _ => Err(format!("Cannot convert {:?} to Vec<String>", self).into()),
         }
     }
 }
@@ -182,6 +267,7 @@ impl Eq for Val {
                 field.get_val(event, *index)?.equal(elem, event, comp_flag)
             },
             Val::Expression(_) => Err("Eq for expression not implemented".into()),
+            Val::FnCall(_) => Err("Eq for function call not implemented".into()),
         }
     }
 
@@ -204,6 +290,7 @@ impl Eq for Val {
                 field.get_val(event, *index)?.neq(elem, event, comp_flag)
             },
             Val::Expression(_) => Err("Neq for expression not implemented".into()),
+            Val::FnCall(_) => Err("Neq for function call not implemented".into()),
         }
     }
 }
@@ -284,6 +371,12 @@ impl Cast for Val {
             Val::Expression(expr) => {
                 Ok(expr.evaluate(event, cache.unwrap_or(&mut ResultMap::new())))
             },
+            Val::FnCall(fn_call) => {
+                // Evaluate function call arguments
+                fn_call
+                    .call(event, cache.unwrap_or(&mut ResultMap::new()))?
+                    .to_bool()
+            },
             _ => Err("Type mismatch. Expected boolean.".into()),
         }
     }
@@ -309,8 +402,38 @@ impl Compare for Val {
             Val::FieldIndex(field, index) => field
                 .get_val(event, *index)?
                 .cmp(elem, event, comparator, flag),
+            Val::FnCall(fn_call) => {
+                // Evaluate the function call and compare its result
+                let result = fn_call.call(event, &mut ResultMap::new())?;
+                result.cmp(elem, event, comparator, flag)
+            },
             _ => Err(format!("Cannot compare {:?} with {:?}", self, elem).into()),
         }
+    }
+}
+
+// From implementations for native types (used by function wrappers)
+impl From<i64> for Val {
+    fn from(value: i64) -> Self {
+        Val::Int(Int(value))
+    }
+}
+
+impl From<f64> for Val {
+    fn from(value: f64) -> Self {
+        Val::Float(Float(value))
+    }
+}
+
+impl From<bool> for Val {
+    fn from(value: bool) -> Self {
+        Val::Bool(Bool(value))
+    }
+}
+
+impl From<String> for Val {
+    fn from(value: String) -> Self {
+        Val::Str(Str(value.into()))
     }
 }
 
