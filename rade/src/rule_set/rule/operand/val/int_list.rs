@@ -1,8 +1,7 @@
 use serde::{Deserialize, Serialize};
 
 use super::{Cast, Val};
-use crate::prelude::*;
-use crate::{Event, RadeResult};
+use crate::{Event, RadeResult, prelude::*};
 
 #[derive(Debug, Deserialize, Serialize, PartialEq, Clone, Hash)]
 pub struct IntList(pub Vec<i64>);

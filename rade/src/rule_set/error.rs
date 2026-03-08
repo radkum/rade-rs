@@ -1,9 +1,6 @@
 use thiserror_no_std::Error;
 
-use crate::prelude::*;
-use crate::utils;
-
-pub type RuleResult<T> = core::result::Result<T, RuleError>;
+use crate::{prelude::*, utils};
 
 #[derive(Error, Debug)]
 pub enum RuleSetError {
@@ -36,12 +33,18 @@ pub enum RuleSetError {
 
 impl core::error::Error for RuleSetError {}
 
+#[cfg(feature = "std")]
+pub type RuleResult<T> = core::result::Result<T, RuleError>;
+
+#[cfg(feature = "std")]
 #[derive(Error, Debug)]
 pub enum RuleError {
     #[error("Serde yaml error: {0}")]
     SerdeYaml(#[from] serde_yaml_bw::Error),
-    #[cfg(feature = "std")]
+
     #[error("Failed to read rule: {0}")]
     Io(#[from] std::io::Error),
 }
+
+#[cfg(feature = "std")]
 impl core::error::Error for RuleError {}

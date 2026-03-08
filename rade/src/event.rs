@@ -4,8 +4,7 @@ use hashbrown::HashMap;
 use serde::{Deserialize, Serialize};
 pub use serializer::EventSerialized;
 
-use crate::prelude::*;
-use crate::{FatString, RadeResult, Val};
+use crate::{FatString, RadeResult, Val, prelude::*};
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct Events(Vec<Event>);
@@ -18,7 +17,7 @@ impl Events {
         self.0
     }
 
-    fn add_event(&mut self, event: Event) {
+    pub fn add_event(&mut self, event: Event) {
         self.0.push(event);
     }
 

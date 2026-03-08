@@ -12,8 +12,10 @@ pub use rules::*;
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
-use crate::prelude::*;
-use crate::utils::{BIN_CONFIG, Sha256Buff};
+use crate::{
+    prelude::*,
+    utils::{BIN_CONFIG, Sha256Buff},
+};
 
 #[derive(Deserialize, Serialize, Default)]
 pub struct RuleSetHeader {
@@ -65,7 +67,7 @@ impl RuleSet {
         Ok(())
     }
 
-    pub(crate) fn serialize_to_bytes(&self) -> Result<Vec<u8>, RuleSetError> {
+    pub fn serialize_to_bytes(&self) -> Result<Vec<u8>, RuleSetError> {
         let mut data = Vec::new();
 
         let rules_data = bincode::serde::encode_to_vec(&self.rules, BIN_CONFIG)?;
@@ -89,7 +91,7 @@ impl RuleSet {
         Self::deserialize_from_bytes(&mut data)
     }
 
-    pub(crate) fn deserialize_from_bytes(data: &mut Vec<u8>) -> Result<Self, RuleSetError> {
+    pub fn deserialize_from_bytes(data: &mut Vec<u8>) -> Result<Self, RuleSetError> {
         if data.len() < RuleSetHeader::HEADER_SIZE {
             return Err(RuleSetError::IncorrectFileSizeError {
                 size: data.len() as u64,

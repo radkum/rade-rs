@@ -1,8 +1,7 @@
 use serde::{Deserialize, Serialize};
 
 use super::{Cast, Comparator, Compare, InsensitiveFlag, Val};
-use crate::prelude::*;
-use crate::{Event, FatString, RadeResult};
+use crate::{Event, FatString, RadeResult, prelude::*};
 
 #[derive(Debug, Deserialize, Serialize, PartialEq, Clone, Hash)]
 pub struct Str(pub FatString);

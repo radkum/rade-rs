@@ -2,8 +2,7 @@ use pest::Parser;
 use pest_derive::Parser;
 
 use super::{Comparator, Condition, FnCall, MethodCall, Operand, OperandContainer, Val};
-use crate::prelude::*;
-use crate::{InsensitiveFlag, RadeResult};
+use crate::{InsensitiveFlag, RadeResult, prelude::*};
 
 type Pair<'i> = ::pest::iterators::Pair<'i, Rule>;
 

@@ -2,8 +2,7 @@ use serde::Serialize;
 use serde_yaml_bw::Value as YamlValue;
 
 use super::{Event, FatString};
-use crate::event::HashMap;
-use crate::prelude::*;
+use crate::{event::HashMap, prelude::*};
 
 #[derive(serde::Deserialize, Serialize)]
 pub struct EventSerialized(HashMap<String, YamlValue>);
@@ -25,18 +24,13 @@ impl<'de> serde::Deserialize<'de> for Event {
 
 impl From<&Event> for EventSerialized {
     fn from(event: &Event) -> Self {
-        Self(
-            event
-                .all
-                .iter()
-                .fold(
-                    HashMap::<String, YamlValue>::new(),
-                    |mut map, (key, val)| {
-                        let _ = map.insert(key.clone(), val.into());
-                        map
-                    },
-                ),
-        )
+        Self(event.all.iter().fold(
+            HashMap::<String, YamlValue>::new(),
+            |mut map, (key, val)| {
+                let _ = map.insert(key.clone(), val.into());
+                map
+            },
+        ))
     }
 }
 

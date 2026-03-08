@@ -1,9 +1,9 @@
 use serde::{Deserialize, Serialize};
 
 use super::{Cast, InsensitiveFlag, Val};
-use crate::prelude::*;
 use crate::{
     Event, FatString, RadeResult, ResultMap,
+    prelude::*,
     rule_set::rule::operand::val::{Compare, Int, Str},
 };
 #[derive(Debug, PartialEq, Clone, Hash, Serialize, Deserialize)]

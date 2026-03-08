@@ -1,8 +1,7 @@
 use serde::{Deserialize, Serialize};
 
 use super::{Bool, Event, Float, Int, IntList, ResultMap, Str, StrList, Val};
-use crate::prelude::*;
-use crate::{FatString, RadeResult};
+use crate::{FatString, RadeResult, prelude::*};
 
 type FnName = String;
 

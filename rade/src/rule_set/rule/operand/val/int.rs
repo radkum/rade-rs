@@ -1,8 +1,7 @@
 use serde::{Deserialize, Serialize};
 
 use super::{Cast, Comparator, Compare, InsensitiveFlag, Val, float::float_eq};
-use crate::prelude::*;
-use crate::{Event, RadeResult};
+use crate::{Event, RadeResult, prelude::*};
 
 #[derive(Debug, Deserialize, Serialize, PartialEq, Clone, Hash)]
 pub struct Int(pub i64);

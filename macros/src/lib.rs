@@ -216,9 +216,8 @@ fn get_type(ty: &Type) -> String {
                             if args.args.len() != 1 {
                                 return String::new();
                             }
-                            if let syn::GenericArgument::Type(Type::Path(TypePath {
-                                path, ..
-                            })) = &args.args[0]
+                            if let syn::GenericArgument::Type(Type::Path(TypePath { path, .. })) =
+                                &args.args[0]
                                 && let Some(inner) = path.segments.last()
                             {
                                 return format!("Vec<{}>", inner.ident);
@@ -237,5 +236,8 @@ fn get_type(ty: &Type) -> String {
 }
 
 fn is_allowed_type(ty: &str) -> bool {
-    matches!(ty, "bool" | "i64" | "f64" | "String" | "Vec<i64>" | "Vec<String>")
+    matches!(
+        ty,
+        "bool" | "i64" | "f64" | "String" | "Vec<i64>" | "Vec<String>"
+    )
 }

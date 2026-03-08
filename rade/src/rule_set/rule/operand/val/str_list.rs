@@ -1,8 +1,7 @@
 use serde::{Deserialize, Serialize};
 
 use super::{Cast, InsensitiveFlag};
-use crate::prelude::*;
-use crate::{FatString, RadeResult};
+use crate::{FatString, RadeResult, prelude::*};
 
 #[derive(Debug, Deserialize, Serialize, PartialEq, Clone, Hash)]
 pub struct StrList(pub Vec<FatString>);

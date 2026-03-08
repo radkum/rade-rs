@@ -1,9 +1,9 @@
 use serde::{Deserialize, Serialize};
 
 use super::Rule;
-use crate::prelude::*;
 #[cfg(feature = "std")]
 use crate::RadeResult;
+use crate::prelude::*;
 
 #[derive(Deserialize, Serialize, Default, Debug, Clone)]
 pub struct Rules(Vec<Rule>);

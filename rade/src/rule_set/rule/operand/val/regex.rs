@@ -1,12 +1,10 @@
-use core::fmt::Display;
-use core::hash::Hash;
+use core::{fmt::Display, hash::Hash};
 
 use regex::Regex;
 use serde::Deserialize;
 
 use super::{Cast, InsensitiveFlag, Match, Val};
-use crate::prelude::*;
-use crate::{Comparator, Event, RadeResult};
+use crate::{Comparator, Event, RadeResult, prelude::*};
 
 #[derive(Debug, Clone)]
 pub struct RadeRegex(pub Regex, pub Option<InsensitiveFlag>);

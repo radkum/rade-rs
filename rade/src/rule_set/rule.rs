@@ -7,11 +7,10 @@ pub use operand::*;
 use parser::ConditionParser;
 use serde::{Deserialize, Serialize};
 
-use super::predicates::ResultMap;
 #[cfg(feature = "std")]
 use super::RuleResult;
-use crate::prelude::*;
-use crate::{Event, Guid};
+use super::predicates::ResultMap;
+use crate::{Event, Guid, prelude::*};
 
 type Condition = OperandContainer;
 

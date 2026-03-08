@@ -2,8 +2,7 @@ use macros::register_functions;
 use serde::{Deserialize, Serialize};
 
 use super::{Event, ResultMap, Val, ValType};
-use crate::prelude::*;
-use crate::RadeResult;
+use crate::{RadeResult, prelude::*};
 
 type FnName = String;
 #[derive(Debug, Clone, PartialEq, Hash, Serialize, Deserialize)]
@@ -44,8 +43,10 @@ impl FnCall {
 mod definitions {
     // Define functions with native Rust types.
     // The macro will generate wrappers that convert Vec<Val> to these types.
-    use alloc::string::{String, ToString};
-    use alloc::vec::Vec;
+    use alloc::{
+        string::{String, ToString},
+        vec::Vec,
+    };
 
     pub fn concat(a: Vec<String>) -> String {
         a.join("")

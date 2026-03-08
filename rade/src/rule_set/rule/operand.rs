@@ -5,8 +5,7 @@ use serde::{Deserialize, Serialize};
 pub use val::{Cast, Comparator, FnCall, MethodCall, RadeRegex, Val};
 use val::{Compare, Match};
 
-use crate::prelude::*;
-use crate::{Event, InsensitiveFlag, ResultMap};
+use crate::{Event, InsensitiveFlag, ResultMap, prelude::*};
 
 pub type OpHash = u64;
 

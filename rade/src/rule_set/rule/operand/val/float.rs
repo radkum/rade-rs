@@ -3,8 +3,7 @@ use core::hash::{Hash, Hasher};
 use serde::{Deserialize, Serialize};
 
 use super::{Cast, Comparator, Compare, InsensitiveFlag, Val};
-use crate::prelude::*;
-use crate::{Event, RadeResult};
+use crate::{Event, RadeResult, prelude::*};
 
 pub(super) fn float_eq(a: f64, b: f64) -> bool {
     (a - b).abs() < 1e-6

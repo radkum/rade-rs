@@ -80,7 +80,9 @@ fn bench_eval_with_predicates(c: &mut Criterion) {
         b.iter(|| {
             let mut engine = RadeEngine::from_rules(rules.clone());
             engine.compile_rules();
-            let matches = engine.eval_with_predicates(black_box(events.clone())).unwrap();
+            let matches = engine
+                .eval_with_predicates(black_box(events.clone()))
+                .unwrap();
             black_box(matches)
         })
     });
@@ -91,7 +93,9 @@ fn bench_eval_with_predicates(c: &mut Criterion) {
         engine.compile_rules();
 
         b.iter(|| {
-            let matches = engine.eval_with_predicates(black_box(events.clone())).unwrap();
+            let matches = engine
+                .eval_with_predicates(black_box(events.clone()))
+                .unwrap();
             black_box(matches)
         })
     });
@@ -166,7 +170,9 @@ fn bench_scaling_events(c: &mut Criterion) {
                 engine.compile_rules();
 
                 b.iter(|| {
-                    let matches = engine.eval_with_predicates(black_box(events.clone())).unwrap();
+                    let matches = engine
+                        .eval_with_predicates(black_box(events.clone()))
+                        .unwrap();
                     black_box(matches)
                 })
             },
@@ -197,7 +203,9 @@ fn bench_comparison(c: &mut Criterion) {
         b.iter(|| {
             let mut engine = RadeEngine::from_rules(rules.clone());
             engine.compile_rules();
-            let matches = engine.eval_with_predicates(black_box(events.clone())).unwrap();
+            let matches = engine
+                .eval_with_predicates(black_box(events.clone()))
+                .unwrap();
             black_box(matches)
         })
     });
