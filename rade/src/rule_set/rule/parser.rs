@@ -422,7 +422,7 @@ impl ConditionParser {
             Rule::hex => i64::from_str_radix(str_without_sign.trim_start_matches("0x"), 16)?,
             Rule::octal => i64::from_str_radix(str_without_sign.trim_start_matches("0o"), 8)?,
             Rule::binary => i64::from_str_radix(str_without_sign.trim_start_matches("0b"), 2)?,
-            Rule::decimal => i64::from_str_radix(str_without_sign.trim_start_matches("0d"), 10)?,
+            Rule::decimal => str_without_sign.trim_start_matches("0d").parse::<i64>()?,
             _ => unexpected_token!(inner),
         };
 

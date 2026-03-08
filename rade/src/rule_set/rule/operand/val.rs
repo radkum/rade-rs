@@ -122,7 +122,7 @@ pub trait Compare {
         _comparator: &Comparator,
         _flag: &Option<InsensitiveFlag>,
     ) -> RadeResult<bool> {
-        Err(format!("Not a number").into())
+        Err("Not a number".to_string().into())
     }
 }
 
@@ -147,7 +147,7 @@ impl Val {
         // For now, we only evaluate expressions and function calls. In the future, we
         // may want to evaluate fields as well.
         match self {
-            Val::Field(Field(field_name)) => event.get_field(field_name).map(|v| v.clone()),
+            Val::Field(Field(field_name)) => event.get_field(field_name).cloned(),
             Val::FieldIndex(field, index) => field.get_val(event, *index),
             Val::FnCall(fn_call) => fn_call.call(event, cache),
             Val::MethodCall(method_call) => method_call.call(event, cache),

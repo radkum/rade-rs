@@ -32,7 +32,7 @@ impl RadeRegex {
         };
         // Unescape \/ to /
         let pattern = pattern.replace("\\/", "/");
-        Ok(Self::new(&pattern, flags)?)
+        Self::new(&pattern, flags)
     }
 }
 
@@ -67,7 +67,7 @@ impl<'de> Deserialize<'de> for RadeRegex {
         D: serde::Deserializer<'de>,
     {
         let s = String::deserialize(deserializer)?;
-        Ok(RadeRegex::from_str(s.as_str()).map_err(serde::de::Error::custom)?)
+        RadeRegex::from_str(s.as_str()).map_err(serde::de::Error::custom)
     }
 }
 

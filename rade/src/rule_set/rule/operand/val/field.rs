@@ -20,14 +20,14 @@ impl From<&str> for Field {
 
 impl Field {
     pub fn new(field_name: String) -> Self {
-        Field(String::from(field_name))
+        Field(field_name)
     }
 
     pub fn plain(&self) -> &str {
         &self.0
     }
 
-    pub fn get_val<'a>(&self, event: &'a Event, index: i64) -> RadeResult<Val> {
+    pub fn get_val(&self, event: &Event, index: i64) -> RadeResult<Val> {
         match event.get_field(&self.0)? {
             Val::StrList(str_list) => Ok(Val::Str(Str(str_list.get(index)?.clone()))),
             Val::IntList(int_list) => Ok(Val::Int(Int(*int_list.get(index)?))),
@@ -42,7 +42,7 @@ impl Field {
         }
     }
 
-    pub fn get_int<'a>(&self, event: &'a Event, index: i64) -> RadeResult<i64> {
+    pub fn get_int(&self, event: &Event, index: i64) -> RadeResult<i64> {
         match event.get_field(&self.0)? {
             Val::IntList(int_list) => Ok(*int_list.get(index)?),
             _ => Err(format!("Field index {} not found", index).into()),

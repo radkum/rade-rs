@@ -72,6 +72,7 @@ impl FromStr for Rule {
 }
 
 impl Rule {
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         guid: Guid,
         name: &str,

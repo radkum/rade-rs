@@ -38,7 +38,7 @@ impl<'de> Deserialize<'de> for FatRegex {
         D: serde::Deserializer<'de>,
     {
         let s = String::deserialize(deserializer)?;
-        Ok(FatRegex::from_str(s.as_str()).map_err(serde::de::Error::custom)?)
+        FatRegex::from_str(s.as_str()).map_err(serde::de::Error::custom)
     }
 }
 
@@ -47,7 +47,7 @@ impl serde::Serialize for FatRegex {
     where
         S: serde::Serializer,
     {
-        serializer.serialize_str(&self.plain.as_str())
+        serializer.serialize_str(self.plain.as_str())
     }
 }
 
@@ -57,7 +57,7 @@ impl FatRegex {
         let apostrophe_insensitive = re.replace("'", "\"");
         let ac_insensitive = apostrophe_insensitive.to_lowercase();
         Ok(Self {
-            plain: Regex::new(&re).map_err(|e| format!("Failed to compile regex: {}", e))?,
+            plain: Regex::new(re).map_err(|e| format!("Failed to compile regex: {}", e))?,
             case_insensitive: Regex::new(&case_insensitive)
                 .map_err(|e| format!("Failed to compile regex: {}", e))?,
             apostrophe_insensitive: Regex::new(&apostrophe_insensitive)

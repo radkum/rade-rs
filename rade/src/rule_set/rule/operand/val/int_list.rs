@@ -45,9 +45,9 @@ impl IntList {
 impl Cast for IntList {
     fn as_i64<'a>(&'a self, _event: &'a Event) -> RadeResult<i64> {
         if self.0.len() == 1 {
-            Ok(self.0[0].into())
+            Ok(self.0[0])
         } else {
-            Err(format!("Not a single value").into())
+            Err("Not a single value".to_string().into())
         }
     }
 

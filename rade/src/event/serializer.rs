@@ -34,8 +34,7 @@ impl From<&Event> for EventSerialized {
                         let _ = map.insert(key.clone(), val.into());
                         map
                     },
-                )
-                .into(),
+                ),
         )
     }
 }

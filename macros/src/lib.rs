@@ -205,8 +205,8 @@ pub fn register_functions(attr: TokenStream, item: TokenStream) -> TokenStream {
 }
 
 // Helper: allowed types
-fn get_type(ty: &Box<Type>) -> String {
-    match &**ty {
+fn get_type(ty: &Type) -> String {
+    match ty {
         Type::Path(TypePath { path, .. }) => {
             if let Some(seg) = path.segments.last() {
                 match seg.ident.to_string().as_str() {
@@ -219,10 +219,9 @@ fn get_type(ty: &Box<Type>) -> String {
                             if let syn::GenericArgument::Type(Type::Path(TypePath {
                                 path, ..
                             })) = &args.args[0]
+                                && let Some(inner) = path.segments.last()
                             {
-                                if let Some(inner) = path.segments.last() {
-                                    return format!("Vec<{}>", inner.ident);
-                                }
+                                return format!("Vec<{}>", inner.ident);
                             }
                         }
                         String::new()
@@ -238,8 +237,5 @@ fn get_type(ty: &Box<Type>) -> String {
 }
 
 fn is_allowed_type(ty: &str) -> bool {
-    match ty {
-        "bool" | "i64" | "f64" | "String" | "Vec<i64>" | "Vec<String>" => true,
-        _ => false,
-    }
+    matches!(ty, "bool" | "i64" | "f64" | "String" | "Vec<i64>" | "Vec<String>")
 }
