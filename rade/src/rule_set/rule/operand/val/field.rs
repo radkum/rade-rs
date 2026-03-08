@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use super::{Cast, Eq, InsensitiveFlag, Val};
+use super::{Cast, InsensitiveFlag, Val};
 use crate::{
     Event, FatString, RadeResult, ResultMap,
     rule_set::rule::operand::val::{Compare, Int, Str},
@@ -81,40 +81,6 @@ impl Cast for Field {
         event.get_intlist_field(&self.0)
     }
 }
-
-impl Eq for Field {
-    fn equal<'a>(
-        &'a self,
-        elem: &Val,
-        event: &'a Event,
-        comp_flag: &Option<InsensitiveFlag>,
-    ) -> RadeResult<bool> {
-        let val = event.get_field(&self.0)?;
-        val.equal(elem, event, comp_flag)
-    }
-
-    fn neq<'a>(
-        &'a self,
-        elem: &Val,
-        event: &'a Event,
-        comp_flag: &Option<InsensitiveFlag>,
-    ) -> RadeResult<bool> {
-        let val = event.get_field(&self.0)?;
-        val.neq(elem, event, comp_flag)
-    }
-}
-
-// impl Contains for Field {
-//     fn contains(
-//         &self,
-//         elem: &Val,
-//         event: &crate::Event,
-//         comp_flag: &Option<InsensitiveFlag>,
-//     ) -> RadeResult<bool> {
-//         let val = event.get_field(&self.0)?;
-//         val.contains(elem, event, comp_flag)
-//     }
-// }
 
 impl Compare for Field {
     fn cmp<'a>(

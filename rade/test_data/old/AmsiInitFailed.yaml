@@ -6,12 +6,4 @@ mitre_tactic: Defense Evasion
 mitre_tactic_id: TA0005
 mitre_id: T1562.001
 example: '"[Ref].Assembly.GetType("System.Management.Automation.AmsiUtils").GetField(''amsiInitFailed'',''NonPublic,Static'').SetValue($null,$true)"'
-condition: !And
-- !Contains
-  - !Field Content
-  - !Str '[Ref].Assembly.GetType(''System.Management.Automation.AmsiUtils'')'
-  - CaseAndApostrophe
-- !Match
-  - !Field Content
-  - !Regex GetField\('amsiInitFailed'.*?SetValue\(
-  - CaseInsensitive
+condition: "Content.contains('[Ref].Assembly.GetType(\"System.Management.Automation.AmsiUtils\")') && Content =~ /GetField\('amsiInitFailed'.*?SetValue\(/i"

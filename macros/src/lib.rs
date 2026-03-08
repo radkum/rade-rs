@@ -31,6 +31,7 @@ pub fn register_functions(attr: TokenStream, item: TokenStream) -> TokenStream {
     }
 
     let map_ident = map_ident.expect("map argument missing");
+    let registry_ident = format_ident!("{}Registry", map_ident);
 
     // Parse module
     let mut module = parse_macro_input!(item as ItemMod);
@@ -44,7 +45,12 @@ pub fn register_functions(attr: TokenStream, item: TokenStream) -> TokenStream {
             if let Item::Fn(f) = item {
                 let fn_name = &f.sig.ident;
                 let fn_name_str = fn_name.to_string();
-                let wrapper_name = format_ident!("{}_wrapper", fn_name);
+                // Make wrapper name unique by including map name
+                let wrapper_name = format_ident!(
+                    "{}_{}_wrapper",
+                    map_ident.to_string().to_ascii_lowercase(),
+                    fn_name
+                );
 
                 // Collect argument info for casting
                 let mut arg_casts = Vec::new();
@@ -176,8 +182,8 @@ pub fn register_functions(attr: TokenStream, item: TokenStream) -> TokenStream {
 
         #(#wrapper_fns)*
 
-        struct FunctionRegistry(std::collections::HashMap<&'static str, (fn(Vec<Val>) -> RadeResult<Val>, ValType)>);
-        impl FunctionRegistry {
+        struct #registry_ident(std::collections::HashMap<&'static str, (fn(Vec<Val>) -> RadeResult<Val>, ValType)>);
+        impl #registry_ident {
             fn function(&self, name: &str) -> Option<fn(Vec<Val>) -> RadeResult<Val>> {
                 self.0.get(name).map(|(f, _)| *f)
             }
@@ -187,11 +193,11 @@ pub fn register_functions(attr: TokenStream, item: TokenStream) -> TokenStream {
             }
         }
 
-        static #map_ident: std::sync::LazyLock<FunctionRegistry> =
+        static #map_ident: std::sync::LazyLock<#registry_ident> =
             std::sync::LazyLock::new(|| {
                 let mut m = std::collections::HashMap::new();
                 #(#registrations)*
-                FunctionRegistry(m)
+                #registry_ident(m)
             });
     };
 

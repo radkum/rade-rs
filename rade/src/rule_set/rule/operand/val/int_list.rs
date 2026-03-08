@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 
-use super::{Cast, InsensitiveFlag, Val};
-use crate::{Event, RadeResult, rule_set::rule::operand::val::Contains};
+use super::{Cast, Val};
+use crate::{Event, RadeResult};
 
 #[derive(Debug, Deserialize, Serialize, PartialEq, Clone, Hash)]
 pub struct IntList(pub Vec<i64>);
@@ -53,12 +53,5 @@ impl Cast for IntList {
 
     fn as_i64_list<'a>(&'a self, _event: &'a Event) -> RadeResult<&'a Vec<i64>> {
         Ok(&self.0)
-    }
-}
-
-impl Contains for IntList {
-    fn contains(&self, elem: &Val, event: &Event, _: &Option<InsensitiveFlag>) -> RadeResult<bool> {
-        let elem = elem.as_i64(event)?;
-        Ok(self.0.contains(&elem))
     }
 }

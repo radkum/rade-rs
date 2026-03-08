@@ -10,17 +10,6 @@ impl Matches {
     }
 }
 
-#[derive(Debug)]
-pub struct Match_ {
-    rule_id: Guid,
-}
-
-impl Match_ {
-    pub fn rule_id(&self) -> &Guid {
-        &self.rule_id
-    }
-}
-
 #[derive(Debug, Default)]
 pub struct MatchedRules(Vec<Guid>);
 impl MatchedRules {

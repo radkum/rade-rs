@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use super::{Cast, Contains, InsensitiveFlag, Val};
+use super::{Cast, InsensitiveFlag};
 use crate::{FatString, RadeResult};
 
 #[derive(Debug, Deserialize, Serialize, PartialEq, Clone, Hash)]
@@ -58,18 +58,5 @@ impl Cast for StrList {
         }
 
         Ok(list.iter().map(|fs| fs.choose(comp_flag)).collect())
-    }
-}
-
-impl Contains for StrList {
-    fn contains(
-        &self,
-        elem: &Val,
-        event: &crate::Event,
-        comp_flag: &Option<InsensitiveFlag>,
-    ) -> RadeResult<bool> {
-        let str_list = self.as_str_list(event, comp_flag)?;
-        let str = elem.as_str(event, comp_flag)?;
-        Ok(str_list.contains(&str))
     }
 }

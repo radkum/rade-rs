@@ -2,7 +2,7 @@ mod val;
 use std::hash::{DefaultHasher, Hash, Hasher};
 
 use serde::{Deserialize, Serialize};
-pub use val::{Cast, Comparator, FnCall, RadeRegex, Val};
+pub use val::{Cast, Comparator, FnCall, MethodCall, RadeRegex, Val};
 use val::{Compare, Match};
 
 use crate::{Event, InsensitiveFlag, ResultMap};
@@ -79,8 +79,7 @@ impl OperandContainer {
         };
 
         let e = res.unwrap_or_else(|e| {
-            //log::error!("Error evaluating operand: {:?}, error: {}", self, e);
-            println!("Error evaluating operand: {:?}, error: {}", self, e);
+            log::error!("Error evaluating operand: {:?}, error: {}", self, e);
             false
         });
 

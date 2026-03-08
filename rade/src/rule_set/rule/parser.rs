@@ -1,12 +1,10 @@
 use pest::Parser;
 use pest_derive::Parser;
 
-use super::{Cast, Comparator, Condition, FnCall, Operand, OperandContainer, Val};
+use super::{Comparator, Condition, FnCall, MethodCall, Operand, OperandContainer, Val};
 use crate::{InsensitiveFlag, RadeResult};
 
-type PestError = pest::error::Error<Rule>;
 type Pair<'i> = ::pest::iterators::Pair<'i, Rule>;
-type Pairs<'i> = ::pest::iterators::Pairs<'i, Rule>;
 
 macro_rules! unexpected_token {
     ($pair:expr) => {
@@ -128,6 +126,9 @@ impl ConditionParser {
                 Rule::function_call => {
                     primary = Self::parse_function_call(primary, postfix)?;
                 },
+                Rule::method_call => {
+                    primary = Self::parse_method_call(primary, postfix)?;
+                },
                 Rule::element_access => {
                     primary = Self::parse_element_access(primary, postfix)?;
                 },
@@ -161,6 +162,32 @@ impl ConditionParser {
             }
         }
         Ok(Val::FnCall(FnCall::new(fn_name, args)))
+    }
+
+    fn parse_method_call(receiver: Val, token: Pair) -> RadeResult<Val> {
+        check_rule!(token, Rule::method_call);
+        let mut inner = token.into_inner();
+
+        // First element is the method name (identifier)
+        let method_name = inner.next().unwrap().as_str().to_string();
+
+        // Parse arguments
+        let mut args = Vec::new();
+        for part in inner {
+            if part.as_rule() == Rule::argument_list {
+                for arg_expr in part.into_inner() {
+                    // Parse argument without boolean validation
+                    let arg_val = Self::parse_expression_no_validate(arg_expr)?;
+                    // Convert OperandContainer back to Val for method argument
+                    args.push(Self::operand_to_val(arg_val)?);
+                }
+            }
+        }
+        Ok(Val::MethodCall(MethodCall::new(
+            receiver,
+            method_name,
+            args,
+        )))
     }
 
     /// Parse expression without boolean validation - used for function
@@ -289,7 +316,7 @@ impl ConditionParser {
     fn parse_parenthesis(token: Pair) -> RadeResult<Val> {
         check_rule!(token, Rule::parenthesis_expression);
         let mut pairs = token.into_inner();
-        let mut token = pairs.next().unwrap();
+        let token = pairs.next().unwrap();
         Ok(Val::Expression(Box::new(
             if let Rule::NOT_OP = token.as_rule() {
                 OperandContainer::from(Operand::Negate(Box::new(Self::parse_expression(
@@ -2132,6 +2159,577 @@ mod tests {
         // Multiple boolean function calls
         let condition = ConditionParser::parse_condition("is_empty('') && is_empty('')").unwrap();
         let map = HashMap::new();
+        let event = Event::from(EventSerialized::new(map));
+        assert!(condition.evaluate(&event, &mut ResultMap::new()));
+    }
+
+    // ============================================
+    // Method Call Tests - Parsing
+    // ============================================
+
+    #[test]
+    fn test_method_call_len_parse() {
+        let condition = ConditionParser::parse_condition("'hello'.len() == 5").unwrap();
+        let map = HashMap::new();
+        let event = Event::from(EventSerialized::new(map));
+        assert!(condition.evaluate(&event, &mut ResultMap::new()));
+    }
+
+    #[test]
+    fn test_method_call_is_empty_parse() {
+        let condition = ConditionParser::parse_condition("''.is_empty()").unwrap();
+        let map = HashMap::new();
+        let event = Event::from(EventSerialized::new(map));
+        assert!(condition.evaluate(&event, &mut ResultMap::new()));
+    }
+
+    #[test]
+    fn test_method_call_contains_parse() {
+        let condition =
+            ConditionParser::parse_condition("'hello world'.contains('world')").unwrap();
+        let map = HashMap::new();
+        let event = Event::from(EventSerialized::new(map));
+        assert!(condition.evaluate(&event, &mut ResultMap::new()));
+    }
+
+    #[test]
+    fn test_method_call_starts_with_parse() {
+        let condition = ConditionParser::parse_condition("'hello'.starts_with('hel')").unwrap();
+        let map = HashMap::new();
+        let event = Event::from(EventSerialized::new(map));
+        assert!(condition.evaluate(&event, &mut ResultMap::new()));
+    }
+
+    #[test]
+    fn test_method_call_ends_with_parse() {
+        let condition = ConditionParser::parse_condition("'hello'.ends_with('llo')").unwrap();
+        let map = HashMap::new();
+        let event = Event::from(EventSerialized::new(map));
+        assert!(condition.evaluate(&event, &mut ResultMap::new()));
+    }
+
+    #[test]
+    fn test_method_call_to_uppercase_parse() {
+        let condition =
+            ConditionParser::parse_condition("'hello'.to_uppercase() == 'HELLO'").unwrap();
+        let map = HashMap::new();
+        let event = Event::from(EventSerialized::new(map));
+        assert!(condition.evaluate(&event, &mut ResultMap::new()));
+    }
+
+    #[test]
+    fn test_method_call_to_lowercase_parse() {
+        let condition =
+            ConditionParser::parse_condition("'HELLO'.to_lowercase() == 'hello'").unwrap();
+        let map = HashMap::new();
+        let event = Event::from(EventSerialized::new(map));
+        assert!(condition.evaluate(&event, &mut ResultMap::new()));
+    }
+
+    #[test]
+    fn test_method_call_trim_parse() {
+        let condition = ConditionParser::parse_condition("'  hello  '.trim() == 'hello'").unwrap();
+        let map = HashMap::new();
+        let event = Event::from(EventSerialized::new(map));
+        assert!(condition.evaluate(&event, &mut ResultMap::new()));
+    }
+
+    #[test]
+    fn test_method_call_replace_parse() {
+        let condition =
+            ConditionParser::parse_condition("'hello'.replace('l', 'L') == 'heLLo'").unwrap();
+        let map = HashMap::new();
+        let event = Event::from(EventSerialized::new(map));
+        assert!(condition.evaluate(&event, &mut ResultMap::new()));
+    }
+
+    // ============================================
+    // Method Call Tests - With Fields
+    // ============================================
+
+    #[test]
+    fn test_method_call_field_len() {
+        let condition = ConditionParser::parse_condition("name.len() == 5").unwrap();
+        let map = HashMap::from([("name".to_string(), "alice".into())]);
+        let event = Event::from(EventSerialized::new(map));
+        assert!(condition.evaluate(&event, &mut ResultMap::new()));
+    }
+
+    #[test]
+    fn test_method_call_field_contains() {
+        let condition = ConditionParser::parse_condition("message.contains('error')").unwrap();
+        let map = HashMap::from([("message".to_string(), "an error occurred".into())]);
+        let event = Event::from(EventSerialized::new(map));
+        assert!(condition.evaluate(&event, &mut ResultMap::new()));
+    }
+
+    #[test]
+    fn test_method_call_field_contains_no_match() {
+        let condition = ConditionParser::parse_condition("message.contains('error')").unwrap();
+        let map = HashMap::from([("message".to_string(), "all good".into())]);
+        let event = Event::from(EventSerialized::new(map));
+        assert!(!condition.evaluate(&event, &mut ResultMap::new()));
+    }
+
+    #[test]
+    fn test_method_call_field_starts_with() {
+        let condition = ConditionParser::parse_condition("path.starts_with('/home')").unwrap();
+        let map = HashMap::from([("path".to_string(), "/home/user/file.txt".into())]);
+        let event = Event::from(EventSerialized::new(map));
+        assert!(condition.evaluate(&event, &mut ResultMap::new()));
+    }
+
+    #[test]
+    fn test_method_call_field_ends_with() {
+        let condition = ConditionParser::parse_condition("filename.ends_with('.exe')").unwrap();
+        let map = HashMap::from([("filename".to_string(), "program.exe".into())]);
+        let event = Event::from(EventSerialized::new(map));
+        assert!(condition.evaluate(&event, &mut ResultMap::new()));
+    }
+
+    #[test]
+    fn test_method_call_field_is_empty_true() {
+        let condition = ConditionParser::parse_condition("value.is_empty()").unwrap();
+        let map = HashMap::from([("value".to_string(), "".into())]);
+        let event = Event::from(EventSerialized::new(map));
+        assert!(condition.evaluate(&event, &mut ResultMap::new()));
+    }
+
+    #[test]
+    fn test_method_call_field_is_empty_false() {
+        let condition = ConditionParser::parse_condition("value.is_empty()").unwrap();
+        let map = HashMap::from([("value".to_string(), "not empty".into())]);
+        let event = Event::from(EventSerialized::new(map));
+        assert!(!condition.evaluate(&event, &mut ResultMap::new()));
+    }
+
+    #[test]
+    fn test_method_call_field_to_uppercase_comparison() {
+        let condition = ConditionParser::parse_condition("name.to_uppercase() == 'ALICE'").unwrap();
+        let map = HashMap::from([("name".to_string(), "alice".into())]);
+        let event = Event::from(EventSerialized::new(map));
+        assert!(condition.evaluate(&event, &mut ResultMap::new()));
+    }
+
+    #[test]
+    fn test_method_call_field_to_lowercase_comparison() {
+        let condition = ConditionParser::parse_condition("name.to_lowercase() == 'alice'").unwrap();
+        let map = HashMap::from([("name".to_string(), "ALICE".into())]);
+        let event = Event::from(EventSerialized::new(map));
+        assert!(condition.evaluate(&event, &mut ResultMap::new()));
+    }
+
+    // ============================================
+    // Method Call Tests - Complex Conditions
+    // ============================================
+
+    #[test]
+    fn test_method_call_in_and_condition() {
+        let condition =
+            ConditionParser::parse_condition("name.starts_with('a') && name.ends_with('e')")
+                .unwrap();
+        let map = HashMap::from([("name".to_string(), "alice".into())]);
+        let event = Event::from(EventSerialized::new(map));
+        assert!(condition.evaluate(&event, &mut ResultMap::new()));
+    }
+
+    #[test]
+    fn test_method_call_in_or_condition() {
+        let condition =
+            ConditionParser::parse_condition("name.starts_with('b') || name.ends_with('e')")
+                .unwrap();
+        let map = HashMap::from([("name".to_string(), "alice".into())]);
+        let event = Event::from(EventSerialized::new(map));
+        assert!(condition.evaluate(&event, &mut ResultMap::new()));
+    }
+
+    #[test]
+    fn test_method_call_len_comparison_gt() {
+        let condition = ConditionParser::parse_condition("name.len() > 3").unwrap();
+        let map = HashMap::from([("name".to_string(), "alice".into())]);
+        let event = Event::from(EventSerialized::new(map));
+        assert!(condition.evaluate(&event, &mut ResultMap::new()));
+    }
+
+    #[test]
+    fn test_method_call_len_comparison_lt() {
+        let condition = ConditionParser::parse_condition("name.len() < 10").unwrap();
+        let map = HashMap::from([("name".to_string(), "alice".into())]);
+        let event = Event::from(EventSerialized::new(map));
+        assert!(condition.evaluate(&event, &mut ResultMap::new()));
+    }
+
+    #[test]
+    fn test_method_call_with_field_as_argument() {
+        let condition = ConditionParser::parse_condition("message.contains(keyword)").unwrap();
+        let map = HashMap::from([
+            ("message".to_string(), "an error occurred".into()),
+            ("keyword".to_string(), "error".into()),
+        ]);
+        let event = Event::from(EventSerialized::new(map));
+        assert!(condition.evaluate(&event, &mut ResultMap::new()));
+    }
+
+    #[test]
+    fn test_method_call_replace_with_field() {
+        let condition =
+            ConditionParser::parse_condition("text.replace('old', 'new') == 'new value'").unwrap();
+        let map = HashMap::from([("text".to_string(), "old value".into())]);
+        let event = Event::from(EventSerialized::new(map));
+        assert!(condition.evaluate(&event, &mut ResultMap::new()));
+    }
+
+    #[test]
+    fn test_method_call_trim_start() {
+        let condition =
+            ConditionParser::parse_condition("'   hello'.trim_start() == 'hello'").unwrap();
+        let map = HashMap::new();
+        let event = Event::from(EventSerialized::new(map));
+        assert!(condition.evaluate(&event, &mut ResultMap::new()));
+    }
+
+    #[test]
+    fn test_method_call_trim_end() {
+        let condition =
+            ConditionParser::parse_condition("'hello   '.trim_end() == 'hello'").unwrap();
+        let map = HashMap::new();
+        let event = Event::from(EventSerialized::new(map));
+        assert!(condition.evaluate(&event, &mut ResultMap::new()));
+    }
+
+    // ============================================
+    // Method Call Tests - Integer Methods
+    // ============================================
+
+    #[test]
+    fn test_method_call_field_int_abs() {
+        let condition = ConditionParser::parse_condition("value.abs() == 10").unwrap();
+        let map = HashMap::from([("value".to_string(), (-10).into())]);
+        let event = Event::from(EventSerialized::new(map));
+        assert!(condition.evaluate(&event, &mut ResultMap::new()));
+    }
+
+    #[test]
+    fn test_method_call_field_int_to_string() {
+        let condition = ConditionParser::parse_condition("value.to_string() == '42'").unwrap();
+        let map = HashMap::from([("value".to_string(), 42.into())]);
+        let event = Event::from(EventSerialized::new(map));
+        assert!(condition.evaluate(&event, &mut ResultMap::new()));
+    }
+
+    // ============================================
+    // Method Call Tests - Float Methods
+    // ============================================
+
+    #[test]
+    fn test_method_call_field_float_abs() {
+        let condition = ConditionParser::parse_condition("value.abs() > 3.0").unwrap();
+        let map = HashMap::from([("value".to_string(), (-3.14).into())]);
+        let event = Event::from(EventSerialized::new(map));
+        assert!(condition.evaluate(&event, &mut ResultMap::new()));
+    }
+
+    #[test]
+    fn test_method_call_field_float_floor() {
+        let condition = ConditionParser::parse_condition("price.floor() == 9.0").unwrap();
+        let map = HashMap::from([("price".to_string(), 9.99.into())]);
+        let event = Event::from(EventSerialized::new(map));
+        assert!(condition.evaluate(&event, &mut ResultMap::new()));
+    }
+
+    #[test]
+    fn test_method_call_field_float_ceil() {
+        let condition = ConditionParser::parse_condition("price.ceil() == 10.0").unwrap();
+        let map = HashMap::from([("price".to_string(), 9.01.into())]);
+        let event = Event::from(EventSerialized::new(map));
+        assert!(condition.evaluate(&event, &mut ResultMap::new()));
+    }
+
+    #[test]
+    fn test_method_call_field_float_round() {
+        let condition = ConditionParser::parse_condition("price.round() == 10.0").unwrap();
+        let map = HashMap::from([("price".to_string(), 9.5.into())]);
+        let event = Event::from(EventSerialized::new(map));
+        assert!(condition.evaluate(&event, &mut ResultMap::new()));
+    }
+
+    #[test]
+    fn test_method_call_field_float_to_string() {
+        let condition = ConditionParser::parse_condition("value.to_string() == '3.14'").unwrap();
+        let map = HashMap::from([("value".to_string(), 3.14.into())]);
+        let event = Event::from(EventSerialized::new(map));
+        assert!(condition.evaluate(&event, &mut ResultMap::new()));
+    }
+
+    // ============================================
+    // Method Call Tests - Combined with other features
+    // ============================================
+
+    #[test]
+    fn test_method_call_combined_with_function() {
+        // Method call result used with a function
+        let condition =
+            ConditionParser::parse_condition("length(name.to_uppercase()) == 5").unwrap();
+        let map = HashMap::from([("name".to_string(), "alice".into())]);
+        let event = Event::from(EventSerialized::new(map));
+        assert!(condition.evaluate(&event, &mut ResultMap::new()));
+    }
+
+    #[test]
+    fn test_method_call_negated_boolean() {
+        // Use parentheses with NOT for negation
+        let condition = ConditionParser::parse_condition("!(name.is_empty())").unwrap();
+        let map = HashMap::from([("name".to_string(), "alice".into())]);
+        let event = Event::from(EventSerialized::new(map));
+        assert!(condition.evaluate(&event, &mut ResultMap::new()));
+    }
+
+    #[test]
+    fn test_method_call_negated_contains() {
+        // Use parentheses with NOT for negation
+        let condition = ConditionParser::parse_condition("!(message.contains('error'))").unwrap();
+        let map = HashMap::from([("message".to_string(), "all good".into())]);
+        let event = Event::from(EventSerialized::new(map));
+        assert!(condition.evaluate(&event, &mut ResultMap::new()));
+    }
+
+    // ============================================
+    // Method Call Tests - String List (Vec<String>)
+    // ============================================
+
+    #[test]
+    fn test_method_call_str_list_len() {
+        let condition = ConditionParser::parse_condition("tags.len() == 3").unwrap();
+        let map = HashMap::from([(
+            "tags".to_string(),
+            vec!["a".to_string(), "b".to_string(), "c".to_string()].into(),
+        )]);
+        let event = Event::from(EventSerialized::new(map));
+        assert!(condition.evaluate(&event, &mut ResultMap::new()));
+    }
+
+    #[test]
+    fn test_method_call_str_list_is_empty_false() {
+        let condition = ConditionParser::parse_condition("tags.is_empty()").unwrap();
+        let map = HashMap::from([(
+            "tags".to_string(),
+            vec!["a".to_string(), "b".to_string()].into(),
+        )]);
+        let event = Event::from(EventSerialized::new(map));
+        assert!(!condition.evaluate(&event, &mut ResultMap::new()));
+    }
+
+    #[test]
+    fn test_method_call_str_list_is_empty_true() {
+        let condition = ConditionParser::parse_condition("tags.is_empty()").unwrap();
+        let map = HashMap::from([("tags".to_string(), Vec::<String>::new().into())]);
+        let event = Event::from(EventSerialized::new(map));
+        assert!(condition.evaluate(&event, &mut ResultMap::new()));
+    }
+
+    #[test]
+    fn test_method_call_str_list_first() {
+        let condition = ConditionParser::parse_condition("tags.first() == 'alpha'").unwrap();
+        let map = HashMap::from([(
+            "tags".to_string(),
+            vec!["alpha".to_string(), "beta".to_string(), "gamma".to_string()].into(),
+        )]);
+        let event = Event::from(EventSerialized::new(map));
+        assert!(condition.evaluate(&event, &mut ResultMap::new()));
+    }
+
+    #[test]
+    fn test_method_call_str_list_last() {
+        let condition = ConditionParser::parse_condition("tags.last() == 'gamma'").unwrap();
+        let map = HashMap::from([(
+            "tags".to_string(),
+            vec!["alpha".to_string(), "beta".to_string(), "gamma".to_string()].into(),
+        )]);
+        let event = Event::from(EventSerialized::new(map));
+        assert!(condition.evaluate(&event, &mut ResultMap::new()));
+    }
+
+    #[test]
+    fn test_method_call_str_list_get() {
+        let condition = ConditionParser::parse_condition("tags.get(1) == 'beta'").unwrap();
+        let map = HashMap::from([(
+            "tags".to_string(),
+            vec!["alpha".to_string(), "beta".to_string(), "gamma".to_string()].into(),
+        )]);
+        let event = Event::from(EventSerialized::new(map));
+        assert!(condition.evaluate(&event, &mut ResultMap::new()));
+    }
+
+    #[test]
+    fn test_method_call_str_list_get_negative_index() {
+        let condition = ConditionParser::parse_condition("tags.get(-1) == 'gamma'").unwrap();
+        let map = HashMap::from([(
+            "tags".to_string(),
+            vec!["alpha".to_string(), "beta".to_string(), "gamma".to_string()].into(),
+        )]);
+        let event = Event::from(EventSerialized::new(map));
+        assert!(condition.evaluate(&event, &mut ResultMap::new()));
+    }
+
+    #[test]
+    fn test_method_call_str_list_contains_true() {
+        let condition = ConditionParser::parse_condition("tags.contains('beta')").unwrap();
+        let map = HashMap::from([(
+            "tags".to_string(),
+            vec!["alpha".to_string(), "beta".to_string(), "gamma".to_string()].into(),
+        )]);
+        let event = Event::from(EventSerialized::new(map));
+        assert!(condition.evaluate(&event, &mut ResultMap::new()));
+    }
+
+    #[test]
+    fn test_method_call_str_list_contains_false() {
+        let condition = ConditionParser::parse_condition("tags.contains('delta')").unwrap();
+        let map = HashMap::from([(
+            "tags".to_string(),
+            vec!["alpha".to_string(), "beta".to_string(), "gamma".to_string()].into(),
+        )]);
+        let event = Event::from(EventSerialized::new(map));
+        assert!(!condition.evaluate(&event, &mut ResultMap::new()));
+    }
+
+    #[test]
+    fn test_method_call_str_list_join() {
+        let condition = ConditionParser::parse_condition("tags.join(', ') == 'a, b, c'").unwrap();
+        let map = HashMap::from([(
+            "tags".to_string(),
+            vec!["a".to_string(), "b".to_string(), "c".to_string()].into(),
+        )]);
+        let event = Event::from(EventSerialized::new(map));
+        assert!(condition.evaluate(&event, &mut ResultMap::new()));
+    }
+
+    #[test]
+    fn test_method_call_str_list_join_empty_separator() {
+        let condition = ConditionParser::parse_condition("tags.join('') == 'abc'").unwrap();
+        let map = HashMap::from([(
+            "tags".to_string(),
+            vec!["a".to_string(), "b".to_string(), "c".to_string()].into(),
+        )]);
+        let event = Event::from(EventSerialized::new(map));
+        assert!(condition.evaluate(&event, &mut ResultMap::new()));
+    }
+
+    // ============================================
+    // Method Call Tests - Integer List (Vec<i64>)
+    // ============================================
+
+    #[test]
+    fn test_method_call_int_list_len() {
+        let condition = ConditionParser::parse_condition("numbers.len() == 4").unwrap();
+        let map = HashMap::from([("numbers".to_string(), vec![1i64, 2, 3, 4].into())]);
+        let event = Event::from(EventSerialized::new(map));
+        assert!(condition.evaluate(&event, &mut ResultMap::new()));
+    }
+
+    #[test]
+    fn test_method_call_int_list_is_empty_false() {
+        let condition = ConditionParser::parse_condition("numbers.is_empty()").unwrap();
+        let map = HashMap::from([("numbers".to_string(), vec![1i64, 2, 3].into())]);
+        let event = Event::from(EventSerialized::new(map));
+        assert!(!condition.evaluate(&event, &mut ResultMap::new()));
+    }
+
+    #[test]
+    fn test_method_call_int_list_is_empty_true() {
+        let condition = ConditionParser::parse_condition("numbers.is_empty()").unwrap();
+        let map = HashMap::from([("numbers".to_string(), Vec::<i64>::new().into())]);
+        let event = Event::from(EventSerialized::new(map));
+        assert!(condition.evaluate(&event, &mut ResultMap::new()));
+    }
+
+    #[test]
+    fn test_method_call_int_list_first() {
+        let condition = ConditionParser::parse_condition("numbers.first() == 10").unwrap();
+        let map = HashMap::from([("numbers".to_string(), vec![10i64, 20, 30].into())]);
+        let event = Event::from(EventSerialized::new(map));
+        assert!(condition.evaluate(&event, &mut ResultMap::new()));
+    }
+
+    #[test]
+    fn test_method_call_int_list_last() {
+        let condition = ConditionParser::parse_condition("numbers.last() == 30").unwrap();
+        let map = HashMap::from([("numbers".to_string(), vec![10i64, 20, 30].into())]);
+        let event = Event::from(EventSerialized::new(map));
+        assert!(condition.evaluate(&event, &mut ResultMap::new()));
+    }
+
+    #[test]
+    fn test_method_call_int_list_get() {
+        let condition = ConditionParser::parse_condition("numbers.get(1) == 20").unwrap();
+        let map = HashMap::from([("numbers".to_string(), vec![10i64, 20, 30].into())]);
+        let event = Event::from(EventSerialized::new(map));
+        assert!(condition.evaluate(&event, &mut ResultMap::new()));
+    }
+
+    #[test]
+    fn test_method_call_int_list_get_negative_index() {
+        let condition = ConditionParser::parse_condition("numbers.get(-2) == 20").unwrap();
+        let map = HashMap::from([("numbers".to_string(), vec![10i64, 20, 30].into())]);
+        let event = Event::from(EventSerialized::new(map));
+        assert!(condition.evaluate(&event, &mut ResultMap::new()));
+    }
+
+    #[test]
+    fn test_method_call_int_list_contains_true() {
+        let condition = ConditionParser::parse_condition("numbers.contains(20)").unwrap();
+        let map = HashMap::from([("numbers".to_string(), vec![10i64, 20, 30].into())]);
+        let event = Event::from(EventSerialized::new(map));
+        assert!(condition.evaluate(&event, &mut ResultMap::new()));
+    }
+
+    #[test]
+    fn test_method_call_int_list_contains_false() {
+        let condition = ConditionParser::parse_condition("numbers.contains(99)").unwrap();
+        let map = HashMap::from([("numbers".to_string(), vec![10i64, 20, 30].into())]);
+        let event = Event::from(EventSerialized::new(map));
+        assert!(!condition.evaluate(&event, &mut ResultMap::new()));
+    }
+
+    #[test]
+    fn test_method_call_int_list_sum() {
+        let condition = ConditionParser::parse_condition("numbers.sum() == 60").unwrap();
+        let map = HashMap::from([("numbers".to_string(), vec![10i64, 20, 30].into())]);
+        let event = Event::from(EventSerialized::new(map));
+        assert!(condition.evaluate(&event, &mut ResultMap::new()));
+    }
+
+    #[test]
+    fn test_method_call_int_list_min() {
+        let condition = ConditionParser::parse_condition("numbers.min() == 5").unwrap();
+        let map = HashMap::from([("numbers".to_string(), vec![10i64, 5, 30, 15].into())]);
+        let event = Event::from(EventSerialized::new(map));
+        assert!(condition.evaluate(&event, &mut ResultMap::new()));
+    }
+
+    #[test]
+    fn test_method_call_int_list_max() {
+        let condition = ConditionParser::parse_condition("numbers.max() == 30").unwrap();
+        let map = HashMap::from([("numbers".to_string(), vec![10i64, 5, 30, 15].into())]);
+        let event = Event::from(EventSerialized::new(map));
+        assert!(condition.evaluate(&event, &mut ResultMap::new()));
+    }
+
+    #[test]
+    fn test_method_call_int_list_sum_comparison() {
+        let condition = ConditionParser::parse_condition("numbers.sum() > 50").unwrap();
+        let map = HashMap::from([("numbers".to_string(), vec![10i64, 20, 30].into())]);
+        let event = Event::from(EventSerialized::new(map));
+        assert!(condition.evaluate(&event, &mut ResultMap::new()));
+    }
+
+    #[test]
+    fn test_method_call_int_list_combined_condition() {
+        // Check both list is not empty AND sum is greater than threshold
+        let condition =
+            ConditionParser::parse_condition("!(numbers.is_empty()) && numbers.sum() > 10")
+                .unwrap();
+        let map = HashMap::from([("numbers".to_string(), vec![5i64, 10, 15].into())]);
         let event = Event::from(EventSerialized::new(map));
         assert!(condition.evaluate(&event, &mut ResultMap::new()));
     }

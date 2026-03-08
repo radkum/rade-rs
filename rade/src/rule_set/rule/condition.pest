@@ -19,7 +19,8 @@ comparison = { unary ~ (COMP_OP ~ unary)? }
 unary = { primary ~ postfix_op* }
 
 postfix_op = _{
-    function_call
+    method_call
+    | function_call
     | element_access
 }
 
@@ -35,6 +36,10 @@ primary = {
 }
 
 parenthesis_expression = { NOT_OP? ~ "(" ~ expression ~ ")" }
+
+method_call = {
+    "." ~ identifier ~ "(" ~ argument_list? ~ ")"
+}
 
 function_call = {
     "(" ~ argument_list? ~ ")"

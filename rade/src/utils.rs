@@ -5,7 +5,6 @@ use alloc::{string::String, vec::Vec};
 use core::fmt;
 
 use bincode::config::{Configuration, Fixint, LittleEndian, NoLimit};
-pub use fat_regex::FatRegex;
 pub use fat_string::{FatString, InsensitiveFlag};
 use serde::{Deserialize, Serialize};
 use sha2::Digest;

@@ -4,6 +4,7 @@ use std::str::FromStr;
 
 //use operand::Operand;
 pub use operand::*;
+use parser::ConditionParser;
 use serde::{Deserialize, Serialize};
 
 use super::{RuleResult, predicates::ResultMap};
@@ -11,11 +12,15 @@ use crate::{Event, Guid};
 
 type Condition = OperandContainer;
 
-#[derive(Debug, Deserialize, Serialize)]
+/// Rule struct - uses derived Deserialize for bincode (binary) format.
+/// For YAML deserialization, use `Rule::from_yaml()` or `FromStr`.
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Rule {
     id: Guid,
     name: Option<String>,
     description: Option<String>,
+    #[serde(default)]
+    categories: Option<Vec<String>>,
     mitre_tactic: Option<String>,
     mitre_tactic_id: Option<String>,
     mitre_id: Option<String>,
@@ -23,13 +28,49 @@ pub struct Rule {
     condition: Condition,
 }
 
+/// Helper struct for YAML deserialization where condition is a string
+#[derive(Deserialize)]
+struct RuleYaml {
+    id: Guid,
+    name: Option<String>,
+    description: Option<String>,
+    #[serde(default)]
+    categories: Option<Vec<String>>,
+    mitre_tactic: Option<String>,
+    mitre_tactic_id: Option<String>,
+    mitre_id: Option<String>,
+    example: Option<String>,
+    condition: String,
+}
+
+impl Rule {
+    /// Deserialize from YAML string (parses condition string using DSL parser)
+    pub fn from_yaml(yaml: &str) -> crate::RadeResult<Self> {
+        let raw: RuleYaml = serde_yaml_bw::from_str(yaml)?;
+        let condition = ConditionParser::parse_condition(&raw.condition)?;
+
+        Ok(Rule {
+            id: raw.id,
+            name: raw.name,
+            description: raw.description,
+            categories: raw.categories,
+            mitre_tactic: raw.mitre_tactic,
+            mitre_tactic_id: raw.mitre_tactic_id,
+            mitre_id: raw.mitre_id,
+            example: raw.example,
+            condition,
+        })
+    }
+}
+
 impl FromStr for Rule {
     type Err = anyhow::Error;
 
     fn from_str(src: &str) -> Result<Self, Self::Err> {
-        Ok(serde_yaml_bw::from_str::<Rule>(src)?)
+        Rule::from_yaml(src).map_err(|e| anyhow::anyhow!("{}", e))
     }
 }
+
 impl Rule {
     pub fn new(
         guid: Guid,
@@ -45,6 +86,7 @@ impl Rule {
             id: guid,
             name: Some(name.to_string()),
             description: Some(description.to_string()),
+            categories: None,
             mitre_tactic: Some(mitre_tactic.to_string()),
             mitre_tactic_id: Some(mitre_tactic_id.to_string()),
             mitre_id: Some(mitre_id.to_string()),
@@ -80,75 +122,36 @@ impl Rule {
     }
 }
 
-// #[cfg(test)]
-// mod tests {
-//     use std::str::FromStr;
+#[cfg(test)]
+mod tests {
+    use super::*;
 
-//     use super::*;
-//     use crate::InsensitiveFlag;
+    #[test]
+    fn test_simple_rule_from_yaml() {
+        let yaml = r#"
+id: 1ee8be03-0f8b-4808-9c3d-260ae456f051
+name: Simple
+description: The simplest rule
+categories: ["test"]
+mitre_tactic: Test
+example: 'text = "old value"'
+condition: |
+  text_old.replace('old', 'new') == text_new
+"#;
+        let rule: Rule = serde_yaml_bw::from_str(yaml).unwrap();
+        assert_eq!(rule.name, Some("Simple".to_string()));
+        assert_eq!(rule.categories, Some(vec!["test".to_string()]));
+        // The condition should be parsed into an OperandContainer
+        println!("Parsed rule: {:?}", rule);
+    }
 
-//     #[test]
-//     fn test_rule_from_str() {
-//         let rule_yaml = r#"
-// id: 43025534-69e4-4e81-a78f-fad61111a7df
-// name: Bypass Amsi
-// description: This rule detects the modification of the amsiInitFailed field
-// to bypass AMSI. mitre_tactic: Defense Evasion
-// mitre_tactic_id: TA0005
-// mitre_id: T1562.001
-// example: '"[Ref].Assembly.GetType("System.Management.Automation.AmsiUtils").
-// GetField(''amsiInitFailed'',''NonPublic,Static'').SetValue($null,$true)"'
-// condition: !And
-// - !Contains
-//   - !Field Content
-//   - !Str '[Ref].Assembly.GetType(''System.Management.Automation.AmsiUtils'')'
-//   - CaseAndApostrophe
-// - !Contains
-//   - !Field Content
-//   - !Str .GetField('amsiInitFailed'
-//   - CaseAndApostrophe
-// "#;
-//         let rule_from_str = Rule::from_str(rule_yaml).unwrap();
-//         let rule = Rule::new(
-//
-// uuid::Uuid::from_str("43025534-69e4-4e81-a78f-fad61111a7df").unwrap(),
-//             "Bypass Amsi",
-//             "This rule detects the modification of the amsiInitFailed field
-// to bypass AMSI.",             "Defense Evasion",
-//             "TA0005",
-//             "T1562.001",
-//
-// r#""[Ref].Assembly.GetType("System.Management.Automation.AmsiUtils").
-// GetField('amsiInitFailed','NonPublic,Static').SetValue($null,$true)""#,
-//             Operand::And(vec![
-//                 Operand::Contains(
-//                     Val::Field("Content".into()),
-//                     Val::Str(
-//
-// "[Ref].Assembly.GetType('System.Management.Automation.AmsiUtils')".into(),
-//                     ),
-//                     Some(InsensitiveFlag::CaseAndApostrophe),
-//                 )
-//                 .into(),
-//                 Operand::Contains(
-//                     Val::Field("Content".into()),
-//                     Val::Str(".GetField('amsiInitFailed'".into()),
-//                     Some(InsensitiveFlag::CaseAndApostrophe),
-//                 )
-//                 .into(),
-//             ])
-//             .into(),
-//         );
-
-//         assert_eq!(
-//             rule_from_str.id,
-//
-// uuid::Uuid::from_str("43025534-69e4-4e81-a78f-fad61111a7df").unwrap()
-//         );
-
-//         assert_eq!(
-//             serde_yaml_bw::to_string(&rule_from_str).unwrap(),
-//             serde_yaml_bw::to_string(&rule).unwrap()
-//         );
-//     }
-// }
+    #[test]
+    fn test_simple_rule_from_file() {
+        let rule = Rule::from_path(std::path::Path::new(
+            "test_data/rules/amsi_disable/Simple.yaml",
+        ))
+        .unwrap();
+        assert_eq!(rule.name, Some("Simple".to_string()));
+        println!("Parsed rule from file: {:?}", rule);
+    }
+}

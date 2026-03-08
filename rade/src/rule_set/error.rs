@@ -2,7 +2,6 @@ use thiserror_no_std::Error;
 
 use crate::utils;
 
-pub type RuleSetResult<T> = core::result::Result<T, RuleSetError>;
 pub type RuleResult<T> = core::result::Result<T, RuleError>;
 
 #[derive(Error, Debug)]

@@ -1,0 +1,8 @@
+id: 1ee8be03-0f8b-4808-9c3d-260ae456f051
+name: Simple
+description: The simplest rule
+categories: ["test"]
+mitre_tactic: Test
+example: 'text = "old value"'
+condition: |
+  text_old.replace('old', 'new') == text_new

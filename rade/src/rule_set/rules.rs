@@ -23,8 +23,8 @@ impl Rules {
                 let mut file = std::fs::File::open(path)?;
                 let content = read_to_string(&mut file)
                     .map_err(|err| anyhow!("Failed to read file {}: {:?}", path.display(), err))?;
-                let rules_vec = serde_yaml_bw::from_str::<Rule>(&content)?;
-                rules.add_rule(rules_vec);
+                let rule = Rule::from_yaml(&content)?;
+                rules.add_rule(rule);
             } else if path.is_dir() {
                 let rules_dir = std::fs::read_dir(path)?;
                 for rule_dir_entry in rules_dir {

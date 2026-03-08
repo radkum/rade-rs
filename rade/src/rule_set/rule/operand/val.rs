@@ -4,6 +4,7 @@ mod float;
 mod function;
 mod int;
 mod int_list;
+mod method;
 mod regex;
 mod serialization;
 mod str;
@@ -16,6 +17,7 @@ pub use float::*;
 pub use function::FnCall;
 pub use int::*;
 pub use int_list::*;
+pub use method::MethodCall;
 pub use regex::RadeRegex;
 use serde::{Deserialize, Serialize};
 use serde_yaml_bw::Value as YamlValue;
@@ -65,25 +67,6 @@ impl Comparator {
         }
     }
 }
-pub trait Eq {
-    fn equal<'a>(
-        &'a self,
-        _elem: &Val,
-        _event: &'a Event,
-        _comp_flag: &Option<InsensitiveFlag>,
-    ) -> RadeResult<bool> {
-        Err("Not implemented".into())
-    }
-
-    fn neq<'a>(
-        &'a self,
-        _elem: &Val,
-        _event: &'a Event,
-        _comp_flag: &Option<InsensitiveFlag>,
-    ) -> RadeResult<bool> {
-        Err("Not implemented".into())
-    }
-}
 
 pub trait Match {
     fn match_<'a>(
@@ -96,17 +79,7 @@ pub trait Match {
     }
 }
 
-pub trait Contains {
-    fn contains<'a>(
-        &'a self,
-        _elem: &Val,
-        _event: &'a Event,
-        _comp_flag: &Option<InsensitiveFlag>,
-    ) -> RadeResult<bool> {
-        Err("Not implemented".into())
-    }
-}
-
+#[allow(dead_code)]
 pub trait Cast {
     fn as_i64<'a>(&'a self, _event: &'a Event) -> RadeResult<i64> {
         Err("Not implemented".into())
@@ -165,7 +138,8 @@ pub enum Val {
     Field(Field),
     FieldIndex(Field, i64),
     Expression(Box<OperandContainer>),
-    FnCall(FnCall), //MethodCall(FnName, Vec<Val>)
+    FnCall(FnCall),
+    MethodCall(MethodCall),
 }
 
 impl Val {
@@ -176,6 +150,7 @@ impl Val {
             Val::Field(Field(field_name)) => event.get_field(field_name).map(|v| v.clone()),
             Val::FieldIndex(field, index) => field.get_val(event, *index),
             Val::FnCall(fn_call) => fn_call.call(event, cache),
+            Val::MethodCall(method_call) => method_call.call(event, cache),
             Val::Expression(_) => Err("Expression cannot be function argument".into()),
             Val::Regex(_) => Err("Regex cannot be function argument".into()),
             _ => Ok(self.clone()),
@@ -192,6 +167,13 @@ impl Val {
                     Ok(self)
                 } else {
                     Err(format!("Function {} does not return a boolean", fn_call.name()).into())
+                }
+            },
+            Val::MethodCall(ref method_call) => {
+                if method_call.is_bool()? {
+                    Ok(self)
+                } else {
+                    Err(format!("Method {} does not return a boolean", method_call.method()).into())
                 }
             },
             _ => Err(format!("Not a boolean: {:?}", self).into()),
@@ -243,54 +225,6 @@ impl Val {
         match self {
             Val::StrList(list) => Ok(list.0.iter().map(|s| s.plain().to_string()).collect()),
             _ => Err(format!("Cannot convert {:?} to Vec<String>", self).into()),
-        }
-    }
-}
-
-impl Eq for Val {
-    fn equal<'a>(
-        &'a self,
-        elem: &Val,
-        event: &'a Event,
-        comp_flag: &Option<InsensitiveFlag>,
-    ) -> RadeResult<bool> {
-        match self {
-            Val::Int(i) => i.equal(elem, event, comp_flag),
-            Val::Float(f) => f.equal(elem, event, comp_flag),
-            Val::IntList(_) => Err("Eq for intlist not implemented".into()),
-            Val::Str(s) => s.equal(elem, event, comp_flag),
-            Val::StrList(_) => Err("Eq for strlist not implemented".into()),
-            Val::Field(field) => field.equal(elem, event, comp_flag),
-            Val::Bool(b) => b.equal(elem, event, comp_flag),
-            Val::Regex(_) => Err("Eq for regex not implemented".into()),
-            Val::FieldIndex(field, index) => {
-                field.get_val(event, *index)?.equal(elem, event, comp_flag)
-            },
-            Val::Expression(_) => Err("Eq for expression not implemented".into()),
-            Val::FnCall(_) => Err("Eq for function call not implemented".into()),
-        }
-    }
-
-    fn neq<'a>(
-        &'a self,
-        elem: &Val,
-        event: &'a Event,
-        comp_flag: &Option<InsensitiveFlag>,
-    ) -> RadeResult<bool> {
-        match self {
-            Val::Bool(b) => b.neq(elem, event, comp_flag),
-            Val::Int(int) => int.neq(elem, event, comp_flag),
-            Val::Float(float) => float.neq(elem, event, comp_flag),
-            Val::IntList(_) => Err("Neq for intlist not implemented".into()),
-            Val::Str(str) => str.neq(elem, event, comp_flag),
-            Val::StrList(_) => Err("Neq for strlist not implemented".into()),
-            Val::Regex(_) => Err("Neq for regex not implemented".into()),
-            Val::Field(field) => field.neq(elem, event, comp_flag),
-            Val::FieldIndex(field, index) => {
-                field.get_val(event, *index)?.neq(elem, event, comp_flag)
-            },
-            Val::Expression(_) => Err("Neq for expression not implemented".into()),
-            Val::FnCall(_) => Err("Neq for function call not implemented".into()),
         }
     }
 }
@@ -377,6 +311,12 @@ impl Cast for Val {
                     .call(event, cache.unwrap_or(&mut ResultMap::new()))?
                     .to_bool()
             },
+            Val::MethodCall(method_call) => {
+                // Evaluate method call
+                method_call
+                    .call(event, cache.unwrap_or(&mut ResultMap::new()))?
+                    .to_bool()
+            },
             _ => Err("Type mismatch. Expected boolean.".into()),
         }
     }
@@ -390,7 +330,6 @@ impl Compare for Val {
         comparator: &Comparator,
         flag: &Option<InsensitiveFlag>,
     ) -> RadeResult<bool> {
-        println!("Comparing {:?} with {:?}", self, elem);
         match self {
             Val::Bool(b) => b.cmp(elem, event, comparator, flag),
             Val::Int(i) => i.cmp(elem, event, comparator, flag),
@@ -405,6 +344,11 @@ impl Compare for Val {
             Val::FnCall(fn_call) => {
                 // Evaluate the function call and compare its result
                 let result = fn_call.call(event, &mut ResultMap::new())?;
+                result.cmp(elem, event, comparator, flag)
+            },
+            Val::MethodCall(method_call) => {
+                // Evaluate the method call and compare its result
+                let result = method_call.call(event, &mut ResultMap::new())?;
                 result.cmp(elem, event, comparator, flag)
             },
             _ => Err(format!("Cannot compare {:?} with {:?}", self, elem).into()),

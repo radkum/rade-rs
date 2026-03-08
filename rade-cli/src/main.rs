@@ -11,6 +11,7 @@ fn main() -> Result<()> {
         .filter_level(log::LevelFilter::Trace)
         .init();
     utils::serialize_ruleset_from_dir()?;
+    println!("Rules serialized successfully");
 
     let events_path = PathBuf::from("rade/test_data/events");
     let events = Events::from_dir(&events_path).map_err(|err| {

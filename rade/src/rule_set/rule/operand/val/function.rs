@@ -52,6 +52,13 @@ mod definitions {
         s.split(&delimiter).map(|s| s.to_string()).collect()
     }
 
+    pub fn split_to_digits(s: i64) -> Vec<i64> {
+        s.to_string()
+            .chars()
+            .map(|c| c.to_digit(10).unwrap() as i64)
+            .collect()
+    }
+
     pub fn length(s: String) -> i64 {
         s.len() as i64
     }

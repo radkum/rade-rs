@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use super::{Cast, Comparator, Compare, Eq, InsensitiveFlag, Val};
+use super::{Cast, Comparator, Compare, InsensitiveFlag, Val};
 use crate::{Event, FatString, RadeResult};
 
 #[derive(Debug, Deserialize, Serialize, PartialEq, Clone, Hash)]
@@ -63,30 +63,6 @@ impl Cast for Str {
     }
 }
 
-impl Eq for Str {
-    fn equal<'a>(
-        &'a self,
-        elem: &Val,
-        event: &'a Event,
-        comp_flag: &Option<InsensitiveFlag>,
-    ) -> RadeResult<bool> {
-        let s1 = self.as_str(event, comp_flag)?;
-        let s2 = elem.as_str(event, comp_flag)?;
-        Ok(s1 == s2)
-    }
-
-    fn neq<'a>(
-        &'a self,
-        elem: &Val,
-        event: &'a Event,
-        comp_flag: &Option<InsensitiveFlag>,
-    ) -> RadeResult<bool> {
-        let s1 = self.as_str(event, comp_flag)?;
-        let s2 = elem.as_str(event, comp_flag)?;
-        Ok(s1 != s2)
-    }
-}
-
 impl Compare for Str {
     fn cmp<'a>(
         &'a self,
@@ -97,7 +73,6 @@ impl Compare for Str {
     ) -> RadeResult<bool> {
         let s1 = self.as_str(event, comp_flag)?;
         let s2 = elem.as_str(event, comp_flag)?;
-        println!("Comparing strings: {} and {}", s1, s2);
         match comparator {
             Comparator::Eq => Ok(s1 == s2),
             Comparator::Neq => Ok(s1 != s2),

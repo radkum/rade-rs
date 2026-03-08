@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use super::{Cast, Comparator, Compare, Contains, Eq, InsensitiveFlag, Val, float::float_eq};
+use super::{Cast, Comparator, Compare, InsensitiveFlag, Val, float::float_eq};
 use crate::{Event, RadeResult};
 
 #[derive(Debug, Deserialize, Serialize, PartialEq, Clone, Hash)]
@@ -18,22 +18,6 @@ impl Cast for Int {
 
     fn as_f64<'a>(&'a self, _: &'a Event) -> RadeResult<f64> {
         Ok(self.0 as f64)
-    }
-}
-
-impl Eq for Int {
-    fn equal(&self, elem: &Val, event: &Event, _: &Option<InsensitiveFlag>) -> RadeResult<bool> {
-        Ok(self.as_i64(event)? == elem.as_i64(event)?)
-    }
-
-    fn neq(&self, elem: &Val, event: &Event, _: &Option<InsensitiveFlag>) -> RadeResult<bool> {
-        self.equal(elem, event, &None).map(|eq| !eq)
-    }
-}
-
-impl Contains for Int {
-    fn contains(&self, elem: &Val, event: &Event, _: &Option<InsensitiveFlag>) -> RadeResult<bool> {
-        self.equal(elem, event, &None)
     }
 }
 
