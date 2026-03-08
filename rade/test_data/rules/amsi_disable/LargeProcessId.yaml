@@ -1,0 +1,10 @@
+id: 22334455-6677-8899-aabb-ccddeeff0011
+name: Unusual Process ID
+description: Detects processes with unusually high process IDs (potential injection)
+categories: ["detection"]
+mitre_tactic: Defense Evasion
+mitre_tactic_id: TA0005
+mitre_id: T1055
+example: 'Process ID > 50000'
+condition: |
+  process_id > 50000

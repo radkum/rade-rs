@@ -1,0 +1,10 @@
+id: 11223344-5566-7788-99aa-bbccddeeff00
+name: Base64 Encoded Command
+description: Detects execution of base64 encoded PowerShell commands
+categories: ["execution", "obfuscation"]
+mitre_tactic: Defense Evasion
+mitre_tactic_id: TA0005
+mitre_id: T1027
+example: 'powershell -EncodedCommand SGVsbG8gV29ybGQ='
+condition: |
+  process_name.to_lowercase() == 'powershell' && content.contains('-EncodedCommand')

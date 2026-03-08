@@ -1,0 +1,5 @@
+process_name: 'test'
+process_id: 9999
+parent_process_id: 1234
+process_path: 'C:\test\test.exe'
+content: 'This is a hello world test message that should match uppercase check'

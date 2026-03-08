@@ -1,0 +1,10 @@
+id: 12345678-abcd-ef12-3456-789abcdef012
+name: Process Injection Detection
+description: Detects common process injection techniques
+categories: ["defense_evasion", "privilege_escalation"]
+mitre_tactic: Defense Evasion
+mitre_tactic_id: TA0005
+mitre_id: T1055
+example: 'VirtualAllocEx followed by WriteProcessMemory'
+condition: |
+  content.contains('VirtualAllocEx') || content.contains('WriteProcessMemory') || content.contains('CreateRemoteThread')

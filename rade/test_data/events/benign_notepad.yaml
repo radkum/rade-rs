@@ -1,0 +1,5 @@
+process_name: 'notepad'
+process_id: 1111
+parent_process_id: 500
+process_path: 'C:\Windows\System32\notepad.exe'
+content: 'Just a regular notepad session with no malicious activity'

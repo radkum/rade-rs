@@ -1,0 +1,10 @@
+id: 43025534-69e4-4e81-a78f-fad61111a7df
+name: AMSI Bypass Detection
+description: Detects attempts to bypass AMSI by modifying amsiInitFailed
+categories: ["defense_evasion", "amsi"]
+mitre_tactic: Defense Evasion
+mitre_tactic_id: TA0005
+mitre_id: T1562.001
+example: '[Ref].Assembly.GetType("System.Management.Automation.AmsiUtils")'
+condition: |
+  content.contains('AmsiUtils') && content.contains('amsiInitFailed')

@@ -1,0 +1,5 @@
+process_name: 'cmd'
+process_id: 5555
+parent_process_id: 1234
+process_path: 'C:\Windows\System32\cmd.exe'
+content: 'reg add "HKCU\Software\Microsoft\Windows\CurrentVersion/Run" /v Malware /d "C:\bad.exe"'

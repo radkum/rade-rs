@@ -1,0 +1,8 @@
+id: 33445566-7788-99aa-bbcc-ddeeff001122
+name: String Manipulation Test
+description: Tests various string manipulation methods
+categories: ["test"]
+mitre_tactic: Test
+example: 'Various string methods'
+condition: |
+  content.len() > 10 && content.to_uppercase().contains('HELLO')

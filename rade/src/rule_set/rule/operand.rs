@@ -79,7 +79,11 @@ impl OperandContainer {
         };
 
         let e = res.unwrap_or_else(|e| {
-            log::error!("Error evaluating operand: {:?}, error: {}", self, e);
+            if e.to_string().contains("Field not found") {
+                log::trace!("Error evaluating operand: {:?}, error: {}", self, e);
+            } else {
+                log::error!("Error evaluating operand: {:?}, error: {}", self, e);
+            }
             false
         });
 

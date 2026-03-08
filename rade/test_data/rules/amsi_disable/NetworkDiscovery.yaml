@@ -1,0 +1,10 @@
+id: 01abcdef-7654-3210-abcd-123456789abc
+name: Network Discovery Commands
+description: Detects common network discovery commands
+categories: ["discovery"]
+mitre_tactic: Discovery
+mitre_tactic_id: TA0007
+mitre_id: T1016
+example: 'ipconfig /all'
+condition: |
+  content.contains('ipconfig') || content.contains('netstat') || content.contains('net view') || content.contains('arp -a')

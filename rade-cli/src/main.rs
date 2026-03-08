@@ -8,7 +8,7 @@ type Result<T> = core::result::Result<T, Box<dyn core::error::Error>>;
 
 fn main() -> Result<()> {
     env_logger::Builder::from_default_env()
-        .filter_level(log::LevelFilter::Trace)
+        .filter_level(log::LevelFilter::Debug)
         .init();
     utils::serialize_ruleset_from_dir()?;
     println!("Rules serialized successfully");

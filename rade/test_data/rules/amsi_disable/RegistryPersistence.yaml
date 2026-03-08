@@ -1,0 +1,10 @@
+id: fedcba98-7654-3210-fedc-ba9876543210
+name: Registry Persistence
+description: Detects attempts to establish persistence via registry run keys
+categories: ["persistence"]
+mitre_tactic: Persistence
+mitre_tactic_id: TA0003
+mitre_id: T1547.001
+example: 'Set-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Run"'
+condition: |
+  content.contains('CurrentVersion\\Run') || content.contains('CurrentVersion/Run')

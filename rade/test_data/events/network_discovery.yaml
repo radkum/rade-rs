@@ -1,0 +1,5 @@
+process_name: 'cmd'
+process_id: 8901
+parent_process_id: 1234
+process_path: 'C:\Windows\System32\cmd.exe'
+content: 'ipconfig /all && netstat -an && arp -a'

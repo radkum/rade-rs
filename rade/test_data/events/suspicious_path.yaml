@@ -1,0 +1,5 @@
+process_name: 'cmd'
+process_id: 7890
+parent_process_id: 1234
+process_path: 'C:\Users\Public\Downloads\suspicious.exe'
+content: 'cmd /c whoami'

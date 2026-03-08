@@ -1,0 +1,5 @@
+process_name: 'powershell'
+process_id: 6789
+parent_process_id: 1234
+process_path: 'C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe'
+content: 'Set-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Run" -Name "Backdoor" -Value "C:\malware.exe"'

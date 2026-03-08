@@ -1,0 +1,5 @@
+process_name: 'explorer'
+process_id: 2222
+parent_process_id: 500
+process_path: 'C:\Windows\explorer.exe'
+content: 'User navigating through folders'

