@@ -10,5 +10,3 @@ proc-macro = true
 syn = {version = "1.0.64", features = ["full"]}
 quote = "1.0"
 proc-macro2 = "1.0"
-windows = { workspace = true, features = [ "Win32_System_Diagnostics_Debug" ] }
-windows-core = { workspace = true }
