@@ -133,7 +133,7 @@ tags:
 
 condition: |
   Image endswith "powershell.exe" and
-  (CommandLine contains "-enc" or CommandLine contains "-encodedcommand")
+  (CommandLine.contains('-enc') or CommandLine.contains('-encodedcommand')
 ```
 
 ### Supported Operators
@@ -153,7 +153,7 @@ condition: |
 
 ```yaml
 # Case-insensitive comparison
-condition: CommandLine.lower() contains "password"
+condition: CommandLine.to_lowercase().contains('password') 
 
 # String manipulation
 condition: length(CommandLine) > 1000

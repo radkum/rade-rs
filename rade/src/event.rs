@@ -90,8 +90,9 @@ impl Events {
 
 #[derive(Debug, Clone)]
 pub struct Event {
-    numbers: HashMap<String, i64>,
     bools: HashMap<String, bool>,
+    numbers: HashMap<String, i64>,
+    floats: HashMap<String, f64>,
     strings: HashMap<String, FatString>,
     string_lists: HashMap<String, Vec<FatString>>,
     number_lists: HashMap<String, Vec<i64>>,
@@ -99,6 +100,30 @@ pub struct Event {
 }
 
 impl Event {
+    pub fn add_bool(&mut self, key: String, value: bool) {
+        self.bools.insert(key, value);
+    }
+
+    pub fn add_string(&mut self, key: String, value: String) {
+        self.strings.insert(key, FatString::from(value));
+    }
+
+    pub fn add_int(&mut self, key: String, value: i64) {
+        self.numbers.insert(key, value);
+    }
+
+    pub fn add_float(&mut self, key: String, value: f64) {
+        self.floats.insert(key, value);
+    }
+
+    pub fn add_str_list(&mut self, key: String, value: Vec<String>) {
+        self.string_lists.insert(key, value.into_iter().map(FatString::from).collect());
+    }
+
+    pub fn add_int_list(&mut self, key: String, value: Vec<i64>) {
+        self.number_lists.insert(key, value);
+    }
+
     pub fn tokenize(s: &str) -> Vec<FatString> {
         s.split(|c: char| !c.is_alphanumeric() && c != '\\' && c != '.' && c != '-')
             .filter(|s| !s.is_empty())

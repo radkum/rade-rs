@@ -141,7 +141,7 @@ example: 'text = "old value"'
 condition: |
   text_old.replace('old', 'new') == text_new
 "#;
-        let rule: Rule = serde_yaml_bw::from_str(yaml).unwrap();
+        let rule = Rule::from_yaml(yaml).unwrap();
         assert_eq!(rule.name, Some("Simple".to_string()));
         assert_eq!(rule.categories, Some(vec!["test".to_string()]));
         // The condition should be parsed into an OperandContainer
@@ -150,10 +150,8 @@ condition: |
 
     #[test]
     fn test_simple_rule_from_file() {
-        let rule = Rule::from_path(std::path::Path::new(
-            "test_data/rules/amsi_disable/Simple.yaml",
-        ))
-        .unwrap();
+        let content = std::fs::read_to_string("test_data/rules/amsi_disable/Simple.yaml").unwrap();
+        let rule = Rule::from_yaml(&content).unwrap();
         assert_eq!(rule.name, Some("Simple".to_string()));
         println!("Parsed rule from file: {:?}", rule);
     }

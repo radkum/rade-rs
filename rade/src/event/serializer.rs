@@ -44,6 +44,7 @@ impl From<&EventSerialized> for Event {
         let mut all = HashMap::new();
         let mut bools = HashMap::new();
         let mut numbers = HashMap::new();
+        let mut floats = HashMap::new();
         let mut strings = HashMap::<String, FatString>::new();
         let mut string_lists = HashMap::<String, Vec<FatString>>::new();
         let mut number_lists = HashMap::<String, Vec<i64>>::new();
@@ -57,6 +58,8 @@ impl From<&EventSerialized> for Event {
                 YamlValue::Number(n) => {
                     if let Some(i) = n.as_i64() {
                         let _ = numbers.insert(key.to_string(), i);
+                    } else {
+                        let _ = floats.insert(key.to_string(), n.as_f64().unwrap());
                     }
                 },
                 YamlValue::String(s) => {
@@ -93,6 +96,7 @@ impl From<&EventSerialized> for Event {
         Event {
             bools,
             numbers,
+            floats,
             strings,
             string_lists,
             number_lists,
