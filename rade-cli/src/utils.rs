@@ -1,7 +1,8 @@
 #![allow(dead_code)]
-use std::{collections::HashMap, str::FromStr};
+use std::str::FromStr;
 
 use anyhow::anyhow;
+use hashbrown::HashMap;
 use rade::*;
 type Result<T> = core::result::Result<T, Box<dyn core::error::Error>>;
 

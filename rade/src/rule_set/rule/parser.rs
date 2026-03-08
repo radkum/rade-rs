@@ -2,6 +2,7 @@ use pest::Parser;
 use pest_derive::Parser;
 
 use super::{Comparator, Condition, FnCall, MethodCall, Operand, OperandContainer, Val};
+use crate::prelude::*;
 use crate::{InsensitiveFlag, RadeResult};
 
 type Pair<'i> = ::pest::iterators::Pair<'i, Rule>;
@@ -432,7 +433,7 @@ impl ConditionParser {
 
 #[cfg(test)]
 mod tests {
-    use std::collections::HashMap;
+    use hashbrown::HashMap;
 
     use super::{super::ResultMap, *};
     use crate::{Event, EventSerialized};

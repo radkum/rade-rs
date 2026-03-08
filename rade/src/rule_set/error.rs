@@ -1,5 +1,6 @@
 use thiserror_no_std::Error;
 
+use crate::prelude::*;
 use crate::utils;
 
 pub type RuleResult<T> = core::result::Result<T, RuleError>;
@@ -20,6 +21,7 @@ pub enum RuleSetError {
     IncorrectSignatureSizeError { size: u32 },
     #[error("Incorrect signature. Info: '{info}'")]
     IncorrectSignatureError { info: String },
+    #[cfg(feature = "std")]
     #[error("IoError: {0}")]
     IoError(#[from] std::io::Error),
     #[error("Given property doesn't exist in map: {0}")]
@@ -38,6 +40,7 @@ impl core::error::Error for RuleSetError {}
 pub enum RuleError {
     #[error("Serde yaml error: {0}")]
     SerdeYaml(#[from] serde_yaml_bw::Error),
+    #[cfg(feature = "std")]
     #[error("Failed to read rule: {0}")]
     Io(#[from] std::io::Error),
 }

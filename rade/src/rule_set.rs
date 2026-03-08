@@ -12,6 +12,7 @@ pub use rules::*;
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
+use crate::prelude::*;
 use crate::utils::{BIN_CONFIG, Sha256Buff};
 
 #[derive(Deserialize, Serialize, Default)]

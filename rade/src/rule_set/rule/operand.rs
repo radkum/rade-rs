@@ -1,13 +1,32 @@
 mod val;
-use std::hash::{DefaultHasher, Hash, Hasher};
+use core::hash::{Hash, Hasher};
 
 use serde::{Deserialize, Serialize};
 pub use val::{Cast, Comparator, FnCall, MethodCall, RadeRegex, Val};
 use val::{Compare, Match};
 
+use crate::prelude::*;
 use crate::{Event, InsensitiveFlag, ResultMap};
 
 pub type OpHash = u64;
+
+/// Simple hasher for no_std environments
+#[derive(Default)]
+struct SimpleHasher {
+    state: u64,
+}
+
+impl Hasher for SimpleHasher {
+    fn finish(&self) -> u64 {
+        self.state
+    }
+
+    fn write(&mut self, bytes: &[u8]) {
+        for byte in bytes {
+            self.state = self.state.wrapping_mul(31).wrapping_add(*byte as u64);
+        }
+    }
+}
 
 #[derive(Debug, PartialEq, Clone, Hash)]
 pub struct OperandContainer {
@@ -136,7 +155,7 @@ pub enum Operand {
 
 impl Operand {
     pub fn gen_hash(&self) -> OpHash {
-        let mut hasher = DefaultHasher::new();
+        let mut hasher = SimpleHasher::default();
         self.hash(&mut hasher);
         hasher.finish()
     }

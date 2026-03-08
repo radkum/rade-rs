@@ -1,8 +1,11 @@
 #![feature(proc_macro_hygiene)]
-#[cfg_attr(not(feature = "std"), no_std)]
+#![cfg_attr(not(feature = "std"), no_std)]
+
 extern crate alloc;
+
 mod event;
 mod match_;
+mod prelude;
 mod rade_engine;
 mod rule_set;
 mod utils;

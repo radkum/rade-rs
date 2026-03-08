@@ -1,6 +1,9 @@
+use core::hash::{Hash, Hasher};
+
 use serde::{Deserialize, Serialize};
 
 use super::{Cast, Comparator, Compare, InsensitiveFlag, Val};
+use crate::prelude::*;
 use crate::{Event, RadeResult};
 
 pub(super) fn float_eq(a: f64, b: f64) -> bool {
@@ -14,8 +17,8 @@ impl From<f64> for Float {
     }
 }
 
-impl std::hash::Hash for Float {
-    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+impl Hash for Float {
+    fn hash<H: Hasher>(&self, state: &mut H) {
         // Convert the f64 to its bit representation and hash that
         self.0.to_bits().hash(state);
     }

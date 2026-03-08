@@ -1,10 +1,10 @@
 mod serializer;
-use std::{collections::HashMap, fs::read_to_string};
 
-use anyhow::anyhow;
+use hashbrown::HashMap;
 use serde::{Deserialize, Serialize};
 pub use serializer::EventSerialized;
 
+use crate::prelude::*;
 use crate::{FatString, RadeResult, Val};
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -26,8 +26,8 @@ impl Events {
     pub fn from_dir(path: &std::path::Path) -> RadeResult<Self> {
         fn imp_from_dir(path: &std::path::Path, events: &mut Events) -> RadeResult<()> {
             if path.is_file() {
-                let content = read_to_string(path)
-                    .map_err(|err| anyhow!("Failed to read file {}: {:?}", path.display(), err))?;
+                let content = std::fs::read_to_string(path)
+                    .map_err(|err| format!("Failed to read file {}: {:?}", path.display(), err))?;
                 let event_serialized = serde_yaml_bw::from_str::<EventSerialized>(&content)?;
                 let mut event = Event::from(event_serialized);
                 if event.name().is_none() {
@@ -51,7 +51,7 @@ impl Events {
                     }
                 }
             } else {
-                Err(anyhow::anyhow!(
+                Err(format!(
                     "Path {} is neither file nor directory",
                     path.display()
                 ))?;

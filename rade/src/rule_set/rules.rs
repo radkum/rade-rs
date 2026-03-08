@@ -1,10 +1,10 @@
-use std::io::read_to_string;
-
-use anyhow::anyhow;
 use serde::{Deserialize, Serialize};
 
 use super::Rule;
+use crate::prelude::*;
+#[cfg(feature = "std")]
 use crate::RadeResult;
+
 #[derive(Deserialize, Serialize, Default, Debug, Clone)]
 pub struct Rules(Vec<Rule>);
 impl Rules {
@@ -21,8 +21,8 @@ impl Rules {
         fn imp_from_dir(path: &std::path::Path, rules: &mut Rules) -> RadeResult<()> {
             if path.is_file() {
                 let mut file = std::fs::File::open(path)?;
-                let content = read_to_string(&mut file)
-                    .map_err(|err| anyhow!("Failed to read file {}: {:?}", path.display(), err))?;
+                let content = std::io::read_to_string(&mut file)
+                    .map_err(|err| format!("Failed to read file {}: {:?}", path.display(), err))?;
                 let rule = Rule::from_yaml(&content)?;
                 rules.add_rule(rule);
             } else if path.is_dir() {
@@ -42,7 +42,7 @@ impl Rules {
                     }
                 }
             } else {
-                Err(anyhow::anyhow!(
+                Err(format!(
                     "Path {} is neither file nor directory",
                     path.display()
                 ))?;

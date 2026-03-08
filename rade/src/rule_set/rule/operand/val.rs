@@ -25,6 +25,7 @@ pub use str::*;
 pub use str_list::*;
 use val_type::ValType;
 
+use crate::prelude::*;
 use crate::{Event, FatString, InsensitiveFlag, OperandContainer, RadeResult, ResultMap};
 
 #[derive(Debug, Deserialize, Serialize, PartialEq, Clone, Hash)]

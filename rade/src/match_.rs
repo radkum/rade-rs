@@ -1,3 +1,5 @@
+use alloc::vec::Vec;
+
 use crate::{Event, Guid};
 
 #[derive(Debug, Default)]
@@ -22,8 +24,8 @@ impl MatchedRules {
     }
 }
 
-impl std::fmt::Display for Matches {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+impl core::fmt::Display for Matches {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         writeln!(f, "Matches {{ ")?;
         for (i, (event, matched_rules)) in self.0.iter().enumerate() {
             writeln!(

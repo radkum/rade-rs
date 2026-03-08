@@ -1,13 +1,16 @@
 mod operand;
 mod parser;
-use std::str::FromStr;
+use core::str::FromStr;
 
 //use operand::Operand;
 pub use operand::*;
 use parser::ConditionParser;
 use serde::{Deserialize, Serialize};
 
-use super::{RuleResult, predicates::ResultMap};
+use super::predicates::ResultMap;
+#[cfg(feature = "std")]
+use super::RuleResult;
+use crate::prelude::*;
 use crate::{Event, Guid};
 
 type Condition = OperandContainer;

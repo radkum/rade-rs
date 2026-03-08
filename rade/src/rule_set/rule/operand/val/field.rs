@@ -1,6 +1,7 @@
 use serde::{Deserialize, Serialize};
 
 use super::{Cast, InsensitiveFlag, Val};
+use crate::prelude::*;
 use crate::{
     Event, FatString, RadeResult, ResultMap,
     rule_set::rule::operand::val::{Compare, Int, Str},

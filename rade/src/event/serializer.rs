@@ -3,6 +3,7 @@ use serde_yaml_bw::Value as YamlValue;
 
 use super::{Event, FatString};
 use crate::event::HashMap;
+use crate::prelude::*;
 
 #[derive(serde::Deserialize, Serialize)]
 pub struct EventSerialized(HashMap<String, YamlValue>);

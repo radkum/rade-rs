@@ -1,6 +1,7 @@
 use serde::{Deserialize, Serialize};
 
 use super::{Cast, Comparator, Compare, InsensitiveFlag, Val};
+use crate::prelude::*;
 use crate::{Event, RadeResult, ResultMap};
 
 #[derive(Debug, Deserialize, Serialize, PartialEq, Clone, Hash)]

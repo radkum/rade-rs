@@ -1,9 +1,11 @@
-use std::{fmt::Display, hash::Hash};
+use core::fmt::Display;
+use core::hash::Hash;
 
 use regex::Regex;
 use serde::Deserialize;
 
 use super::{Cast, InsensitiveFlag, Match, Val};
+use crate::prelude::*;
 use crate::{Comparator, Event, RadeResult};
 
 #[derive(Debug, Clone)]
@@ -37,7 +39,7 @@ impl RadeRegex {
 }
 
 impl Display for RadeRegex {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         if let Some(rest) = self.0.as_str().strip_prefix("(?") {
             //flags are present
             let (flags, regex_body) = rest.split_once(")").unwrap_or_default();
@@ -49,7 +51,7 @@ impl Display for RadeRegex {
 }
 
 impl Hash for RadeRegex {
-    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+    fn hash<H: core::hash::Hasher>(&self, state: &mut H) {
         self.0.as_str().hash(state);
         self.1.hash(state);
     }

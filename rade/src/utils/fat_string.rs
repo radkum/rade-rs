@@ -1,6 +1,8 @@
-use std::hash::Hash;
+use core::hash::Hash;
 
 use serde::{Deserialize, Serialize};
+
+use crate::prelude::*;
 
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone, Hash)]
 pub enum InsensitiveFlag {
@@ -39,13 +41,13 @@ impl core::cmp::PartialEq for FatString {
 }
 
 impl Hash for FatString {
-    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+    fn hash<H: core::hash::Hasher>(&self, state: &mut H) {
         self.plain.hash(state);
     }
 }
 
-impl alloc::fmt::Debug for FatString {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+impl core::fmt::Debug for FatString {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         write!(f, "FatString({})", self.plain)
     }
 }

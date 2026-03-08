@@ -1,10 +1,11 @@
 #![allow(unused)]
-use std::hash::Hash;
+use core::hash::Hash;
 
 use regex::Regex;
 use serde::Deserialize;
 
 use super::InsensitiveFlag;
+use crate::prelude::*;
 
 #[derive(Clone)]
 pub struct FatRegex {
@@ -21,13 +22,13 @@ impl core::cmp::PartialEq for FatRegex {
 }
 
 impl Hash for FatRegex {
-    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+    fn hash<H: core::hash::Hasher>(&self, state: &mut H) {
         self.plain.as_str().hash(state);
     }
 }
 
-impl alloc::fmt::Debug for FatRegex {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+impl core::fmt::Debug for FatRegex {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         write!(f, "FatRegex({})", self.plain)
     }
 }

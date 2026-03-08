@@ -1,7 +1,7 @@
 mod fat_regex;
 mod fat_string;
 
-use alloc::{string::String, vec::Vec};
+use alloc::{string::String, vec::Vec, boxed::Box};
 use core::fmt;
 
 use bincode::config::{Configuration, Fixint, LittleEndian, NoLimit};

@@ -182,7 +182,7 @@ pub fn register_functions(attr: TokenStream, item: TokenStream) -> TokenStream {
 
         #(#wrapper_fns)*
 
-        struct #registry_ident(std::collections::HashMap<&'static str, (fn(Vec<Val>) -> RadeResult<Val>, ValType)>);
+        struct #registry_ident(hashbrown::HashMap<&'static str, (fn(Vec<Val>) -> RadeResult<Val>, ValType)>);
         impl #registry_ident {
             fn function(&self, name: &str) -> Option<fn(Vec<Val>) -> RadeResult<Val>> {
                 self.0.get(name).map(|(f, _)| *f)
@@ -193,9 +193,9 @@ pub fn register_functions(attr: TokenStream, item: TokenStream) -> TokenStream {
             }
         }
 
-        static #map_ident: std::sync::LazyLock<#registry_ident> =
-            std::sync::LazyLock::new(|| {
-                let mut m = std::collections::HashMap::new();
+        static #map_ident: spin::Lazy<#registry_ident> =
+            spin::Lazy::new(|| {
+                let mut m = hashbrown::HashMap::new();
                 #(#registrations)*
                 #registry_ident(m)
             });

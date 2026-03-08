@@ -1,4 +1,5 @@
-use std::collections::HashMap;
+use alloc::boxed::Box;
+use hashbrown::HashMap;
 
 use super::{rule::OpHash, rules::Rules};
 
