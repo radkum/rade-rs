@@ -10,6 +10,10 @@ readme = "README.md"
 [lib]
 path = "src/lib.rs"
 
+[[bench]]
+name = "engine_benchmarks"
+harness = false
+
 [dependencies]
 anyhow = "1.0"
 bincode = { version = "2.0.0-rc.3", features = ["serde", "alloc"]}
@@ -28,3 +32,6 @@ macros = { path = "../macros" }
 [features]
 default = ["std"]
 std = []
+
+[dev-dependencies]
+criterion = { version = "0.5", features = ["html_reports"] }

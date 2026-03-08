@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 
 use super::Rule;
 use crate::RadeResult;
-#[derive(Deserialize, Serialize, Default, Debug)]
+#[derive(Deserialize, Serialize, Default, Debug, Clone)]
 pub struct Rules(Vec<Rule>);
 impl Rules {
     pub fn iter(&self) -> core::slice::Iter<'_, Rule> {

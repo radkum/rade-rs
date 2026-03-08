@@ -14,7 +14,7 @@ type Condition = OperandContainer;
 
 /// Rule struct - uses derived Deserialize for bincode (binary) format.
 /// For YAML deserialization, use `Rule::from_yaml()` or `FromStr`.
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Rule {
     id: Guid,
     name: Option<String>,

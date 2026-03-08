@@ -7,7 +7,7 @@ pub use serializer::EventSerialized;
 
 use crate::{FatString, RadeResult, Val};
 
-#[derive(Debug, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct Events(Vec<Event>);
 impl Events {
     pub fn iter(&self) -> core::slice::Iter<'_, Event> {
