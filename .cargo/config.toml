@@ -1,3 +1,2 @@
 [alias]
-xtask = "run --package xtask --"
 cli = "run --package rade-cli --"

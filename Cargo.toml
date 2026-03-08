@@ -2,7 +2,6 @@
 members = [
     "rade",
     "rade-cli",
-    "xtask",
 ]
 resolver = "3"
 
