@@ -108,6 +108,11 @@ impl Rule {
         &self.id
     }
 
+    /// The rule's name as declared in its YAML, if any.
+    pub fn name(&self) -> Option<&str> {
+        self.name.as_deref()
+    }
+
     pub fn evaluate(&self, event: &Event) -> bool {
         self.condition.evaluate(event, &mut ResultMap::new())
     }

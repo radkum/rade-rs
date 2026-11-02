@@ -88,7 +88,7 @@ impl Events {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct Event {
     bools: HashMap<String, bool>,
     numbers: HashMap<String, i64>,
