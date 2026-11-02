@@ -3,6 +3,7 @@ mod serializer;
 use hashbrown::HashMap;
 use serde::{Deserialize, Serialize};
 pub use serializer::EventSerialized;
+use serde_yaml_bw::Value as YamlValue;
 
 use crate::{FatString, RadeResult, Val, prelude::*};
 
@@ -101,10 +102,12 @@ pub struct Event {
 
 impl Event {
     pub fn add_bool(&mut self, key: String, value: bool) {
+        self.all.insert(key.clone(), Val::from(&YamlValue::Bool(value)));
         self.bools.insert(key, value);
     }
 
     pub fn add_string(&mut self, key: String, value: String) {
+        self.all.insert(key.clone(), Val::from(&YamlValue::String(value.clone())));
         self.strings.insert(key, FatString::from(value));
     }
 
