@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 
 use super::Rule;
 #[cfg(feature = "std")]
-use crate::RadeResult;
+use crate::{RadeResult, utils::is_yaml_path};
 use crate::prelude::*;
 
 #[derive(Deserialize, Serialize, Default, Debug, Clone)]
@@ -24,34 +24,31 @@ impl Rules {
     #[cfg(feature = "std")]
     pub fn from_dir(path: &std::path::Path) -> RadeResult<Self> {
         fn imp_from_dir(path: &std::path::Path, rules: &mut Rules) -> RadeResult<()> {
-            if path.is_file() {
-                let mut file = std::fs::File::open(path)?;
-                let content = std::io::read_to_string(&mut file)
-                    .map_err(|err| format!("Failed to read file {}: {:?}", path.display(), err))?;
-                let rule = Rule::from_yaml(&content)?;
-                rules.add_rule(rule);
-            } else if path.is_dir() {
-                let rules_dir = std::fs::read_dir(path)?;
-                for rule_dir_entry in rules_dir {
-                    let Ok(rule) = rule_dir_entry else {
-                        log::warn!("Failed to read dir entry from path",);
+            if path.is_dir() {
+                for entry in std::fs::read_dir(path)? {
+                    let Ok(entry) = entry else {
+                        log::warn!("Failed to read directory entry in {}", path.display());
                         continue;
                     };
-
-                    if let Err(err) = imp_from_dir(&rule.path(), rules) {
-                        let rule_path = rule.path();
-                        return Err(format!(
-                            "Failed to read rule from path {:?}: {err}",
-                            rule_path
-                        )
-                        .into());
+                    let entry_path = entry.path();
+                    if entry_path.is_dir() || is_yaml_path(&entry_path) {
+                        imp_from_dir(&entry_path, rules)?;
                     }
                 }
+            } else if path.is_file() {
+                let content = std::fs::read_to_string(path).map_err(|err| {
+                    format!("Failed to read rule file {}: {err}", path.display())
+                })?;
+                let rule = Rule::from_yaml(&content).map_err(|err| {
+                    format!("Failed to parse rule file {}: {err}", path.display())
+                })?;
+                rules.add_rule(rule);
             } else {
-                Err(format!(
+                return Err(format!(
                     "Path {} is neither file nor directory",
                     path.display()
-                ))?;
+                )
+                .into());
             }
             Ok(())
         }

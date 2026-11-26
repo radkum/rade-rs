@@ -59,7 +59,9 @@ fn compile_then_eval_matches_in_both_modes() {
     let ruleset = dir.join("ruleset.bin");
 
     write(&rules_dir.join("rule.yaml"), RULE_YAML);
+    write(&rules_dir.join("README.md"), "not a rule");
     write(&events_dir.join("event.yaml"), EVENT_YAML);
+    write(&events_dir.join("README.md"), "not an event");
 
     let compiled = compile(&rules_dir, &ruleset);
     assert!(
@@ -91,6 +93,43 @@ fn compile_then_eval_matches_in_both_modes() {
             "expected matched rule id in stdout, got: {stdout}"
         );
     }
+}
+
+#[test]
+fn eval_rejects_invalid_event() {
+    let dir = unique_dir("invalid-event");
+    let rules_dir = dir.join("rules");
+    let events_dir = dir.join("events");
+    let ruleset = dir.join("ruleset.bin");
+
+    write(&rules_dir.join("rule.yaml"), RULE_YAML);
+
+    let compiled = compile(&rules_dir, &ruleset);
+    assert!(
+        compiled.status.success(),
+        "compile failed: {}",
+        String::from_utf8_lossy(&compiled.stderr)
+    );
+
+    write(&events_dir.join("broken.yaml"), "foo: [unclosed");
+
+    let output = Command::new(bin())
+        .args(["eval", "-r"])
+        .arg(&ruleset)
+        .arg("-e")
+        .arg(&events_dir)
+        .output()
+        .unwrap();
+
+    assert!(
+        !output.status.success(),
+        "expected eval to fail for an invalid event file"
+    );
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(
+        stderr.contains("Failed to load events"),
+        "unexpected stderr: {stderr}"
+    );
 }
 
 #[test]

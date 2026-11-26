@@ -4,6 +4,8 @@ use hashbrown::HashMap;
 use serde::{Deserialize, Serialize};
 pub use serializer::EventSerialized;
 
+#[cfg(feature = "std")]
+use crate::utils::is_yaml_path;
 use crate::{FatString, RadeResult, Val, prelude::*};
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -24,10 +26,25 @@ impl Events {
     #[cfg(feature = "std")]
     pub fn from_dir(path: &std::path::Path) -> RadeResult<Self> {
         fn imp_from_dir(path: &std::path::Path, events: &mut Events) -> RadeResult<()> {
-            if path.is_file() {
-                let content = std::fs::read_to_string(path)
-                    .map_err(|err| format!("Failed to read file {}: {:?}", path.display(), err))?;
-                let event_serialized = serde_yaml_bw::from_str::<EventSerialized>(&content)?;
+            if path.is_dir() {
+                for entry in std::fs::read_dir(path)? {
+                    let Ok(entry) = entry else {
+                        log::warn!("Failed to read directory entry in {}", path.display());
+                        continue;
+                    };
+                    let entry_path = entry.path();
+                    if entry_path.is_dir() || is_yaml_path(&entry_path) {
+                        imp_from_dir(&entry_path, events)?;
+                    }
+                }
+            } else if path.is_file() {
+                let content = std::fs::read_to_string(path).map_err(|err| {
+                    format!("Failed to read event file {}: {err}", path.display())
+                })?;
+                let event_serialized =
+                    serde_yaml_bw::from_str::<EventSerialized>(&content).map_err(|err| {
+                        format!("Failed to parse event file {}: {err}", path.display())
+                    })?;
                 let mut event = Event::from(event_serialized);
                 if event.name().is_none()
                     && let Some(stem) = path.file_stem()
@@ -35,27 +52,12 @@ impl Events {
                     event.set_name(stem.to_string_lossy().as_ref());
                 }
                 events.add_event(event);
-            } else if path.is_dir() {
-                let events_dir = std::fs::read_dir(path)?;
-                for event_dir_entry in events_dir {
-                    let Ok(event) = event_dir_entry else {
-                        log::warn!("Failed to read dir entry from path",);
-                        continue;
-                    };
-
-                    if let Err(err) = imp_from_dir(&event.path(), events) {
-                        println!(
-                            "Failed to read event from path: {:?}, error: {:?}",
-                            event.path(),
-                            err
-                        );
-                    }
-                }
             } else {
-                Err(format!(
+                return Err(format!(
                     "Path {} is neither file nor directory",
                     path.display()
-                ))?;
+                )
+                .into());
             }
             Ok(())
         }

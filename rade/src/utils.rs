@@ -12,6 +12,17 @@ use thiserror_no_std::Error;
 
 pub type RadeResult<T> = core::result::Result<T, Box<dyn core::error::Error>>;
 pub type ShaResult<T> = core::result::Result<T, ShaError>;
+
+#[cfg(feature = "std")]
+pub(crate) fn is_yaml_path(path: &std::path::Path) -> bool {
+    matches!(
+        path.extension()
+            .and_then(|ext| ext.to_str())
+            .map(|ext| ext.to_ascii_lowercase())
+            .as_deref(),
+        Some("yaml" | "yml")
+    )
+}
 pub(crate) const BIN_CONFIG: Configuration<LittleEndian, Fixint, NoLimit> =
     bincode::config::legacy();
 
