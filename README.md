@@ -1,7 +1,7 @@
-# RADE-RS — Real-time Advanced Detection Engine
+# RADE-RS ΓÇö Real-time Advanced Detection Engine
 
 [![Rust](https://img.shields.io/badge/rust-1.85%2B-orange.svg)](https://www.rust-lang.org/)
-[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![License](https://img.shields.io/badge/license-MIT%20OR%20Apache--2.0-blue.svg)](LICENSE-MIT)
 [![Build Status](https://img.shields.io/badge/build-passing-brightgreen.svg)]()
 
 <p align="center">
@@ -10,29 +10,29 @@
 
 ---
 
-## 🎯 Overview
+## ≡ƒÄ» Overview
 
 **RADE** (Real-time Advanced Detection Engine) is a powerful pattern matching and rule evaluation engine written in Rust. It's designed for analyzing security events in real-time, detecting malicious or suspicious activities through customizable rules and advanced pattern matching techniques.
 
 ### Key Highlights
 
-- 🚀 **Blazingly Fast** — Optimized for millions of events per second
-- 🔒 **Memory Safe** — Written in 100% safe Rust
-- 📦 **`no_std` Compatible** — Run in embedded or kernel environments
-- 🎨 **Expressive DSL** — Intuitive rule definition language
-- 🔌 **Extensible** — Easy to add custom operators and functions
+- ≡ƒÜÇ **Blazingly Fast** ΓÇö Optimized for millions of events per second
+- ≡ƒöÆ **Memory Safe** ΓÇö Written in 100% safe Rust
+- ≡ƒôª **`no_std` Compatible** ΓÇö Run in embedded or kernel environments
+- ≡ƒÄ¿ **Expressive DSL** ΓÇö Intuitive rule definition language
+- ≡ƒöî **Extensible** ΓÇö Easy to add custom operators and functions
 
 ---
 
-## 📦 Workspace Structure
+## ≡ƒôª Workspace Structure
 
 This repository is a Cargo workspace containing multiple crates:
 
 ```
 rade-rs/
-├── rade/           # Core detection engine library
-├── rade-cli/       # Command-line interface tool
-└── macros/         # Procedural macros for code generation
+Γö£ΓöÇΓöÇ rade/           # Core detection engine library
+Γö£ΓöÇΓöÇ rade-cli/       # Command-line interface tool
+ΓööΓöÇΓöÇ macros/         # Procedural macros for code generation
 ```
 
 | Crate | Description |
@@ -43,7 +43,7 @@ rade-rs/
 
 ---
 
-## 🚀 Quick Start
+## ≡ƒÜÇ Quick Start
 
 ### Prerequisites
 
@@ -116,7 +116,7 @@ fn main() -> anyhow::Result<()> {
 
 ---
 
-## 📝 Rule DSL
+## ≡ƒô¥ Rule DSL
 
 RADE uses an expressive Domain-Specific Language for defining detection rules:
 
@@ -164,7 +164,7 @@ condition: CommandLineArgs[0] == "cmd.exe"
 
 ---
 
-## ⚡ Performance
+## ΓÜí Performance
 
 RADE is designed for high-throughput scenarios:
 
@@ -173,7 +173,7 @@ RADE is designed for high-throughput scenarios:
 | Simple rule evaluation | ~2M | Single field comparison |
 | Complex rule (5+ conditions) | ~500K | Multiple operators |
 | Predicate-based evaluation | ~1.5M | Pre-compiled conditions |
-| 100 rules × 1000 events | ~50K | Batch processing |
+| 100 rules ├ù 1000 events | ~50K | Batch processing |
 
 Run benchmarks yourself:
 
@@ -183,7 +183,7 @@ cargo bench -p rade
 
 ---
 
-## 🔧 Features
+## ≡ƒöº Features
 
 ### `no_std` Support
 
@@ -200,39 +200,39 @@ rade = { git = "...", default-features = false }
 
 | Feature | Default | Description |
 |---------|---------|-------------|
-| `std` | ✅ | Standard library support |
+| `std` | Γ£à | Standard library support |
 
 ---
 
-## 🏗️ Architecture
+## ≡ƒÅù∩╕Å Architecture
 
 ```
-┌─────────────────────────────────────────────────────────┐
-│                      RADE Engine                         │
-├─────────────────────────────────────────────────────────┤
-│  ┌─────────────┐  ┌─────────────┐  ┌─────────────────┐  │
-│  │   Parser    │  │  Compiler   │  │   Evaluator     │  │
-│  │   (pest)    │──│  (binary)   │──│  (iterative/    │  │
-│  │             │  │             │  │   predicate)    │  │
-│  └─────────────┘  └─────────────┘  └─────────────────┘  │
-├─────────────────────────────────────────────────────────┤
-│  ┌─────────────────────────────────────────────────┐    │
-│  │                    Event Model                   │    │
-│  │  strings | integers | booleans | lists          │    │
-│  └─────────────────────────────────────────────────┘    │
-└─────────────────────────────────────────────────────────┘
+ΓöîΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÉ
+Γöé                      RADE Engine                         Γöé
+Γö£ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöñ
+Γöé  ΓöîΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÉ  ΓöîΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÉ  ΓöîΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÉ  Γöé
+Γöé  Γöé   Parser    Γöé  Γöé  Compiler   Γöé  Γöé   Evaluator     Γöé  Γöé
+Γöé  Γöé   (pest)    ΓöéΓöÇΓöÇΓöé  (binary)   ΓöéΓöÇΓöÇΓöé  (iterative/    Γöé  Γöé
+Γöé  Γöé             Γöé  Γöé             Γöé  Γöé   predicate)    Γöé  Γöé
+Γöé  ΓööΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÿ  ΓööΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÿ  ΓööΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÿ  Γöé
+Γö£ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöñ
+Γöé  ΓöîΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÉ    Γöé
+Γöé  Γöé                    Event Model                   Γöé    Γöé
+Γöé  Γöé  strings | integers | booleans | lists          Γöé    Γöé
+Γöé  ΓööΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÿ    Γöé
+ΓööΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÿ
 ```
 
 ### Core Components
 
-1. **Parser** — Parses rule DSL using PEG grammar (pest)
-2. **Compiler** — Converts rules to optimized binary format
-3. **Evaluator** — Matches events against compiled rules
-4. **Event Model** — Flexible structure for security events
+1. **Parser** ΓÇö Parses rule DSL using PEG grammar (pest)
+2. **Compiler** ΓÇö Converts rules to optimized binary format
+3. **Evaluator** ΓÇö Matches events against compiled rules
+4. **Event Model** ΓÇö Flexible structure for security events
 
 ---
 
-## 📚 Documentation
+## ≡ƒôÜ Documentation
 
 - [RADE Library Documentation](./rade/Readme.md)
 - [RADE-CLI Usage Guide](./rade-cli/Readme.md)
@@ -241,7 +241,7 @@ rade = { git = "...", default-features = false }
 
 ---
 
-## 🧪 Testing
+## ≡ƒº¬ Testing
 
 ```bash
 # Run all tests
@@ -256,7 +256,7 @@ cargo test -p rade test_rule_evaluation
 
 ---
 
-## 🤝 Contributing
+## ≡ƒñ¥ Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.
 
@@ -284,29 +284,29 @@ cargo test --workspace && cargo clippy --workspace
 
 ---
 
-## 📄 License
+## ≡ƒôä License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
----
-
-## 🙏 Acknowledgments
-
-- [pest](https://pest.rs/) — PEG parser generator
-- [serde](https://serde.rs/) — Serialization framework
-- [criterion](https://github.com/bheisler/criterion.rs) — Benchmarking library
-- [hashbrown](https://github.com/rust-lang/hashbrown) — `no_std` compatible HashMap
+Licensed under MIT or Apache-2.0, at your option. See [LICENSE-MIT](LICENSE-MIT) and [LICENSE-APACHE](LICENSE-APACHE) for details.
 
 ---
 
-## 📬 Contact
+## ≡ƒÖÅ Acknowledgments
 
-- **Author**: Radosław Kumor
+- [pest](https://pest.rs/) ΓÇö PEG parser generator
+- [serde](https://serde.rs/) ΓÇö Serialization framework
+- [criterion](https://github.com/bheisler/criterion.rs) ΓÇö Benchmarking library
+- [hashbrown](https://github.com/rust-lang/hashbrown) ΓÇö `no_std` compatible HashMap
+
+---
+
+## ≡ƒô¼ Contact
+
+- **Author**: Rados┼éaw Kumor
 - **Email**: radoslaw.kumorekit@gmail.com
 - **GitHub**: [@radkum](https://github.com/radkum)
 
 ---
 
 <p align="center">
-  <sub>Built with ❤️ in Rust</sub>
+  <sub>Built with Γ¥ñ∩╕Å in Rust</sub>
 </p>
