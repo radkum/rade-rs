@@ -1,4 +1,4 @@
-# RADE-RS ΓÇö Real-time Advanced Detection Engine
+# RADE-RS ╬ô├ç├╢ Real-time Advanced Detection Engine
 
 [![Rust](https://img.shields.io/badge/rust-1.85%2B-orange.svg)](https://www.rust-lang.org/)
 [![License](https://img.shields.io/badge/license-MIT%20OR%20Apache--2.0-blue.svg)](LICENSE-MIT)
@@ -10,29 +10,29 @@
 
 ---
 
-## ≡ƒÄ» Overview
+## Γëí╞Æ├ä┬╗ Overview
 
 **RADE** (Real-time Advanced Detection Engine) is a powerful pattern matching and rule evaluation engine written in Rust. It's designed for analyzing security events in real-time, detecting malicious or suspicious activities through customizable rules and advanced pattern matching techniques.
 
 ### Key Highlights
 
-- ≡ƒÜÇ **Blazingly Fast** ΓÇö Optimized for millions of events per second
-- ≡ƒöÆ **Memory Safe** ΓÇö Written in 100% safe Rust
-- ≡ƒôª **`no_std` Compatible** ΓÇö Run in embedded or kernel environments
-- ≡ƒÄ¿ **Expressive DSL** ΓÇö Intuitive rule definition language
-- ≡ƒöî **Extensible** ΓÇö Easy to add custom operators and functions
+- Γëí╞Æ├£├ç **Blazingly Fast** ╬ô├ç├╢ Optimized for millions of events per second
+- Γëí╞Æ├╢├å **Memory Safe** ╬ô├ç├╢ Written in 100% safe Rust
+- Γëí╞Æ├┤┬¬ **`no_std` Compatible** ╬ô├ç├╢ Run in embedded or kernel environments
+- Γëí╞Æ├ä┬┐ **Expressive DSL** ╬ô├ç├╢ Intuitive rule definition language
+- Γëí╞Æ├╢├« **Extensible** ╬ô├ç├╢ Easy to add custom operators and functions
 
 ---
 
-## ≡ƒôª Workspace Structure
+## Γëí╞Æ├┤┬¬ Workspace Structure
 
 This repository is a Cargo workspace containing multiple crates:
 
 ```
 rade-rs/
-Γö£ΓöÇΓöÇ rade/           # Core detection engine library
-Γö£ΓöÇΓöÇ rade-cli/       # Command-line interface tool
-ΓööΓöÇΓöÇ macros/         # Procedural macros for code generation
+╬ô├╢┬ú╬ô├╢├ç╬ô├╢├ç rade/           # Core detection engine library
+╬ô├╢┬ú╬ô├╢├ç╬ô├╢├ç rade-cli/       # Command-line interface tool
+╬ô├╢├╢╬ô├╢├ç╬ô├╢├ç macros/         # Procedural macros for code generation
 ```
 
 | Crate | Description |
@@ -43,7 +43,7 @@ rade-rs/
 
 ---
 
-## ≡ƒÜÇ Quick Start
+## Γëí╞Æ├£├ç Quick Start
 
 ### Prerequisites
 
@@ -116,7 +116,7 @@ fn main() -> anyhow::Result<()> {
 
 ---
 
-## ≡ƒô¥ Rule DSL
+## Γëí╞Æ├┤┬Ñ Rule DSL
 
 RADE uses an expressive Domain-Specific Language for defining detection rules:
 
@@ -164,7 +164,7 @@ condition: CommandLineArgs[0] == "cmd.exe"
 
 ---
 
-## ΓÜí Performance
+## ╬ô├£├¡ Performance
 
 RADE is designed for high-throughput scenarios:
 
@@ -173,7 +173,7 @@ RADE is designed for high-throughput scenarios:
 | Simple rule evaluation | ~2M | Single field comparison |
 | Complex rule (5+ conditions) | ~500K | Multiple operators |
 | Predicate-based evaluation | ~1.5M | Pre-compiled conditions |
-| 100 rules ├ù 1000 events | ~50K | Batch processing |
+| 100 rules Γö£├╣ 1000 events | ~50K | Batch processing |
 
 Run benchmarks yourself:
 
@@ -183,7 +183,7 @@ cargo bench -p rade
 
 ---
 
-## ≡ƒöº Features
+## Γëí╞Æ├╢┬║ Features
 
 ### `no_std` Support
 
@@ -200,48 +200,48 @@ rade = { git = "...", default-features = false }
 
 | Feature | Default | Description |
 |---------|---------|-------------|
-| `std` | Γ£à | Standard library support |
+| `std` | ╬ô┬ú├á | Standard library support |
 
 ---
 
-## ≡ƒÅù∩╕Å Architecture
+## Γëí╞Æ├à├╣Γê⌐Γòò├à Architecture
 
 ```
-ΓöîΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÉ
-Γöé                      RADE Engine                         Γöé
-Γö£ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöñ
-Γöé  ΓöîΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÉ  ΓöîΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÉ  ΓöîΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÉ  Γöé
-Γöé  Γöé   Parser    Γöé  Γöé  Compiler   Γöé  Γöé   Evaluator     Γöé  Γöé
-Γöé  Γöé   (pest)    ΓöéΓöÇΓöÇΓöé  (binary)   ΓöéΓöÇΓöÇΓöé  (iterative/    Γöé  Γöé
-Γöé  Γöé             Γöé  Γöé             Γöé  Γöé   predicate)    Γöé  Γöé
-Γöé  ΓööΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÿ  ΓööΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÿ  ΓööΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÿ  Γöé
-Γö£ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöñ
-Γöé  ΓöîΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÉ    Γöé
-Γöé  Γöé                    Event Model                   Γöé    Γöé
-Γöé  Γöé  strings | integers | booleans | lists          Γöé    Γöé
-Γöé  ΓööΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÿ    Γöé
-ΓööΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÿ
+╬ô├╢├«╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ë
+╬ô├╢├⌐                      RADE Engine                         ╬ô├╢├⌐
+╬ô├╢┬ú╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├▒
+╬ô├╢├⌐  ╬ô├╢├«╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ë  ╬ô├╢├«╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ë  ╬ô├╢├«╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ë  ╬ô├╢├⌐
+╬ô├╢├⌐  ╬ô├╢├⌐   Parser    ╬ô├╢├⌐  ╬ô├╢├⌐  Compiler   ╬ô├╢├⌐  ╬ô├╢├⌐   Evaluator     ╬ô├╢├⌐  ╬ô├╢├⌐
+╬ô├╢├⌐  ╬ô├╢├⌐   (pest)    ╬ô├╢├⌐╬ô├╢├ç╬ô├╢├ç╬ô├╢├⌐  (binary)   ╬ô├╢├⌐╬ô├╢├ç╬ô├╢├ç╬ô├╢├⌐  (iterative/    ╬ô├╢├⌐  ╬ô├╢├⌐
+╬ô├╢├⌐  ╬ô├╢├⌐             ╬ô├╢├⌐  ╬ô├╢├⌐             ╬ô├╢├⌐  ╬ô├╢├⌐   predicate)    ╬ô├╢├⌐  ╬ô├╢├⌐
+╬ô├╢├⌐  ╬ô├╢├╢╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├┐  ╬ô├╢├╢╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├┐  ╬ô├╢├╢╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├┐  ╬ô├╢├⌐
+╬ô├╢┬ú╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├▒
+╬ô├╢├⌐  ╬ô├╢├«╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ë    ╬ô├╢├⌐
+╬ô├╢├⌐  ╬ô├╢├⌐                    Event Model                   ╬ô├╢├⌐    ╬ô├╢├⌐
+╬ô├╢├⌐  ╬ô├╢├⌐  strings | integers | booleans | lists          ╬ô├╢├⌐    ╬ô├╢├⌐
+╬ô├╢├⌐  ╬ô├╢├╢╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├┐    ╬ô├╢├⌐
+╬ô├╢├╢╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├┐
 ```
 
 ### Core Components
 
-1. **Parser** ΓÇö Parses rule DSL using PEG grammar (pest)
-2. **Compiler** ΓÇö Converts rules to optimized binary format
-3. **Evaluator** ΓÇö Matches events against compiled rules
-4. **Event Model** ΓÇö Flexible structure for security events
+1. **Parser** ╬ô├ç├╢ Parses rule DSL using PEG grammar (pest)
+2. **Compiler** ╬ô├ç├╢ Converts rules to optimized binary format
+3. **Evaluator** ╬ô├ç├╢ Matches events against compiled rules
+4. **Event Model** ╬ô├ç├╢ Flexible structure for security events
 
 ---
 
-## ≡ƒôÜ Documentation
+## Γëí╞Æ├┤├£ Documentation
 
 - [RADE Library Documentation](./rade/Readme.md)
 - [RADE-CLI Usage Guide](./rade-cli/Readme.md)
-- [Rule Writing Guide](./docs/rules.md) *(coming soon)*
+- Rule Writing Guide *(coming soon)*
 - [API Reference](https://docs.rs/rade) *(when published)*
 
 ---
 
-## ≡ƒº¬ Testing
+## Γëí╞Æ┬║┬¼ Testing
 
 ```bash
 # Run all tests
@@ -256,7 +256,7 @@ cargo test -p rade test_rule_evaluation
 
 ---
 
-## ≡ƒñ¥ Contributing
+## Γëí╞Æ├▒┬Ñ Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.
 
@@ -284,29 +284,29 @@ cargo test --workspace && cargo clippy --workspace
 
 ---
 
-## ≡ƒôä License
+## License
 
 Licensed under MIT or Apache-2.0, at your option. See [LICENSE-MIT](LICENSE-MIT) and [LICENSE-APACHE](LICENSE-APACHE) for details.
 
 ---
 
-## ≡ƒÖÅ Acknowledgments
+## Γëí╞Æ├û├à Acknowledgments
 
-- [pest](https://pest.rs/) ΓÇö PEG parser generator
-- [serde](https://serde.rs/) ΓÇö Serialization framework
-- [criterion](https://github.com/bheisler/criterion.rs) ΓÇö Benchmarking library
-- [hashbrown](https://github.com/rust-lang/hashbrown) ΓÇö `no_std` compatible HashMap
+- [pest](https://pest.rs/) ╬ô├ç├╢ PEG parser generator
+- [serde](https://serde.rs/) ╬ô├ç├╢ Serialization framework
+- [criterion](https://github.com/bheisler/criterion.rs) ╬ô├ç├╢ Benchmarking library
+- [hashbrown](https://github.com/rust-lang/hashbrown) ╬ô├ç├╢ `no_std` compatible HashMap
 
 ---
 
-## ≡ƒô¼ Contact
+## Γëí╞Æ├┤┬╝ Contact
 
-- **Author**: Rados┼éaw Kumor
+- **Author**: RadosΓö╝├⌐aw Kumor
 - **Email**: radoslaw.kumorekit@gmail.com
 - **GitHub**: [@radkum](https://github.com/radkum)
 
 ---
 
 <p align="center">
-  <sub>Built with Γ¥ñ∩╕Å in Rust</sub>
+  <sub>Built with ╬ô┬Ñ├▒Γê⌐Γòò├à in Rust</sub>
 </p>
