@@ -108,6 +108,7 @@ impl Rule {
         &self.id
     }
 
+    /// The rule's display name, if present.
     pub fn name(&self) -> Option<&str> {
         self.name.as_deref()
     }

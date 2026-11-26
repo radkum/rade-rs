@@ -173,6 +173,9 @@ int main(void) {
 }
 ```
 
+Use `rade_engine_eval_events_json` for a JSON array of events; it returns one
+result object per input event (including non-matches).
+
 Notes:
 
 - A handle is **not thread-safe**. Use one `RadeEngine` per thread; the ABI does
@@ -269,11 +272,15 @@ Pre-compiled binary rulesets and in-memory events can be evaluated in `no_std`.
 ## Testing
 
 ```bash
-cargo test --workspace
-cargo clippy --workspace --all-targets -- -D warnings
-cargo build -p rade --no-default-features
-cargo run -p rade --example eval
+cargo test --workspace --locked
+cargo clippy --workspace --all-targets --locked -- -D warnings
+cargo build -p rade --no-default-features --locked
+cargo run -p rade --example eval --locked
+cargo build -p rade-ffi --release --locked
 ```
+
+The CI also compiles `rade-ffi/tests/smoke.c` as both C and C++ and runs it
+against the built shared library.
 
 ## License
 

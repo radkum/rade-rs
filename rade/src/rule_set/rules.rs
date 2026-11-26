@@ -16,6 +16,7 @@ impl Rules {
         self.0.push(rule);
     }
 
+    /// Look up a rule by its id.
     pub fn get(&self, id: &crate::Guid) -> Option<&Rule> {
         self.0.iter().find(|rule| rule.id() == id)
     }

@@ -22,22 +22,41 @@ jobs:
         components: clippy
 
     - name: Build core without default features (no_std)
-      run: cargo build -p rade --no-default-features --verbose
+      run: cargo build -p rade --no-default-features --verbose --locked
 
     - name: Clippy
-      run: cargo clippy --workspace --all-targets -- -D warnings
+      run: cargo clippy --workspace --all-targets --locked -- -D warnings
 
     - name: Build FFI (cdylib)
-      run: cargo build -p rade-ffi --release
+      run: cargo build -p rade-ffi --release --locked
+
+    - name: C/C++ FFI smoke test
+      run: |
+        cc rade-ffi/tests/smoke.c -Irade-ffi/include -Ltarget/release -lrade -o target/rade-smoke-c
+        c++ -std=c++17 -x c++ rade-ffi/tests/smoke.c -x none -Irade-ffi/include -Ltarget/release -lrade -o target/rade-smoke-cpp
+        LD_LIBRARY_PATH="$PWD/target/release" ./target/rade-smoke-c
+        LD_LIBRARY_PATH="$PWD/target/release" ./target/rade-smoke-cpp
 
     - name: Package check
       run: |
-        cargo package -p rade-macros
-        cargo package -p rade --no-verify --list
-        cargo package -p rade-cli --no-verify --list
+        cargo package -p rade-macros --locked
+        cargo package -p rade --no-verify --list --locked
+        cargo package -p rade-cli --no-verify --list --locked
 
     - name: Test
-      run: cargo test --workspace --verbose
+      run: cargo test --workspace --verbose --locked
 
     - name: Run example
-      run: cargo run -p rade --example eval
+      run: cargo run -p rade --example eval --locked
+
+  msrv:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Install Rust 1.89
+      uses: dtolnay/rust-toolchain@1.89.0
+
+    - name: Check workspace on MSRV
+      run: cargo check --workspace --all-targets --locked

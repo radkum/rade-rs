@@ -11,14 +11,17 @@ impl Matches {
         }
     }
 
+    /// Iterate over `(event, matched rules)` pairs.
     pub fn iter(&self) -> impl Iterator<Item = (&Event, &MatchedRules)> {
         self.0.iter().map(|pair| (&pair.0, &pair.1))
     }
 
+    /// Number of events that matched at least one rule.
     pub fn len(&self) -> usize {
         self.0.len()
     }
 
+    /// Whether no event matched any rule.
     pub fn is_empty(&self) -> bool {
         self.0.is_empty()
     }
@@ -35,14 +38,17 @@ impl MatchedRules {
         self.0.push(rule_id);
     }
 
+    /// Iterate over the ids of matched rules.
     pub fn iter(&self) -> impl Iterator<Item = &Guid> {
         self.0.iter()
     }
 
+    /// Number of matched rules.
     pub fn len(&self) -> usize {
         self.0.len()
     }
 
+    /// Whether no rule matched.
     pub fn is_empty(&self) -> bool {
         self.0.is_empty()
     }

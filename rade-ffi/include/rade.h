@@ -22,6 +22,11 @@ int32_t rade_engine_eval_json(RadeEngine *engine,
                               char **out_matches_json,
                               char **err);
 
+int32_t rade_engine_eval_events_json(RadeEngine *engine,
+                                     const char *events_json,
+                                     char **out_matches_json,
+                                     char **err);
+
 void rade_engine_free(RadeEngine *engine);
 
 void rade_string_free(char *s);

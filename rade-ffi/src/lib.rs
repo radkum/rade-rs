@@ -64,14 +64,10 @@ fn engine_from_rules(rules: Rules) -> RadeEngine {
     engine
 }
 
-fn matches_to_json(engine: &RadeEngine, matches: &Matches) -> Value {
-    let mut event_name: Option<String> = None;
+fn matched_rules_json(engine: &RadeEngine, matches: &Matches) -> Vec<Value> {
     let mut rules = Vec::new();
 
-    for (event, matched_rules) in matches.iter() {
-        if event_name.is_none() {
-            event_name = event.name().map(ToString::to_string);
-        }
+    for (_, matched_rules) in matches.iter() {
         for rule_id in matched_rules.iter() {
             let rule_name = engine
                 .rules()
@@ -85,11 +81,21 @@ fn matches_to_json(engine: &RadeEngine, matches: &Matches) -> Value {
         }
     }
 
-    json!({
-        "matched": !rules.is_empty(),
+    rules
+}
+
+fn eval_event(engine: &RadeEngine, event: Event) -> Result<Value, String> {
+    let event_name = event.name().map(ToString::to_string);
+    let matches = engine
+        .eval_with_predicates(Events::new(vec![event]))
+        .map_err(|e| e.to_string())?;
+    let rules = matched_rules_json(engine, &matches);
+
+    Ok(json!({
         "event": event_name,
+        "matched": !rules.is_empty(),
         "rules": rules,
-    })
+    }))
 }
 
 /// ABI version implemented by this library.
@@ -227,15 +233,81 @@ pub unsafe extern "C" fn rade_engine_eval_json(
             },
         };
 
-        let matches = match engine.eval_with_predicates(Events::new(vec![event])) {
-            Ok(matches) => matches,
-            Err(e) => {
-                set_error(err, e.to_string());
+        let result = match eval_event(engine, event) {
+            Ok(result) => result,
+            Err(message) => {
+                set_error(err, message);
                 return RADE_ERR;
             },
         };
 
-        write_string(out_matches_json, matches_to_json(engine, &matches).to_string());
+        write_string(out_matches_json, result.to_string());
+        RADE_OK
+    })
+}
+
+/// Evaluate a JSON array of events and return a JSON array of result objects.
+///
+/// Returns `0` on success, `1` on a handled error and `2` on panic.
+///
+/// # Safety
+///
+/// `engine` must be a pointer returned by one of the `rade_engine_new_*`
+/// functions and must not be used concurrently from multiple threads.
+/// `events_json` must point to a NUL-terminated UTF-8 string containing a JSON
+/// array. `out_matches_json` and `err`, if non-null, must point to writable
+/// `char *` slots. Strings written to the out-parameters must be released with
+/// `rade_string_free`.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn rade_engine_eval_events_json(
+    engine: *mut RadeEngineHandle,
+    events_json: *const c_char,
+    out_matches_json: *mut *mut c_char,
+    err: *mut *mut c_char,
+) -> i32 {
+    guard(err, || {
+        if engine.is_null() {
+            set_error(err, "engine pointer is null");
+            return RADE_ERR;
+        }
+        if events_json.is_null() {
+            set_error(err, "events pointer is null");
+            return RADE_ERR;
+        }
+        if out_matches_json.is_null() {
+            set_error(err, "out_matches_json pointer is null");
+            return RADE_ERR;
+        }
+
+        let engine = unsafe { &(*engine).engine };
+        let events_text = match unsafe { CStr::from_ptr(events_json) }.to_str() {
+            Ok(text) => text,
+            Err(e) => {
+                set_error(err, format!("events are not valid UTF-8: {e}"));
+                return RADE_ERR;
+            },
+        };
+
+        let events: Vec<Event> = match serde_json::from_str(events_text) {
+            Ok(events) => events,
+            Err(e) => {
+                set_error(err, format!("invalid events JSON: {e}"));
+                return RADE_ERR;
+            },
+        };
+
+        let mut results = Vec::with_capacity(events.len());
+        for event in events {
+            match eval_event(engine, event) {
+                Ok(result) => results.push(result),
+                Err(message) => {
+                    set_error(err, message);
+                    return RADE_ERR;
+                },
+            }
+        }
+
+        write_string(out_matches_json, Value::Array(results).to_string());
         RADE_OK
     })
 }
@@ -324,6 +396,39 @@ condition: |
 
         let json = unsafe { CStr::from_ptr(out) }.to_str().unwrap();
         assert!(json.contains("\"matched\":true"));
+        assert!(json.contains("Encoded PowerShell Command"));
+
+        unsafe {
+            rade_string_free(out);
+            rade_engine_free(engine);
+        }
+    }
+
+    #[test]
+    fn eval_events_json_returns_one_result_per_event() {
+        let bytes = ruleset_bytes();
+        let mut err = ptr::null_mut();
+        let engine =
+            unsafe { rade_engine_new_from_ruleset(bytes.as_ptr(), bytes.len(), &mut err) };
+        assert!(!engine.is_null());
+
+        let events = CString::new(
+            r#"[
+                {"Image":"C:/Windows/System32/WindowsPowerShell/v1.0/powershell.exe","CommandLine":"powershell.exe -enc SGVsbG8="},
+                {"Image":"C:/Windows/System32/notepad.exe","CommandLine":"notepad.exe"}
+            ]"#,
+        )
+        .unwrap();
+
+        let mut out = ptr::null_mut();
+        let code =
+            unsafe { rade_engine_eval_events_json(engine, events.as_ptr(), &mut out, &mut err) };
+        assert_eq!(code, RADE_OK);
+
+        let json = unsafe { CStr::from_ptr(out) }.to_str().unwrap();
+        assert!(json.starts_with('['));
+        assert!(json.contains("\"matched\":true"));
+        assert!(json.contains("\"matched\":false"));
         assert!(json.contains("Encoded PowerShell Command"));
 
         unsafe {
