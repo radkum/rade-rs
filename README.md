@@ -282,6 +282,14 @@ cargo build -p rade-ffi --release --locked
 The CI also compiles `rade-ffi/tests/smoke.c` as both C and C++ and runs it
 against the built shared library.
 
+Parser fuzzing (nightly + `cargo-fuzz`):
+
+```bash
+cd fuzz
+cargo fuzz build
+cargo fuzz run parse_condition
+```
+
 ## License
 
 Licensed under either of

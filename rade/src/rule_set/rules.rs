@@ -39,11 +39,12 @@ impl Rules {
                     };
 
                     if let Err(err) = imp_from_dir(&rule.path(), rules) {
-                        log::error!(
-                            "Failed to read rule from path: {:?}, error: {:?}",
-                            rule.path(),
-                            err
-                        );
+                        let rule_path = rule.path();
+                        return Err(format!(
+                            "Failed to read rule from path {:?}: {err}",
+                            rule_path
+                        )
+                        .into());
                     }
                 }
             } else {

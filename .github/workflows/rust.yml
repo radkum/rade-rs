@@ -60,3 +60,19 @@ jobs:
 
     - name: Check workspace on MSRV
       run: cargo check --workspace --all-targets --locked
+
+  fuzz-build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Install nightly Rust
+      uses: dtolnay/rust-toolchain@nightly
+
+    - name: Install cargo-fuzz
+      run: cargo install cargo-fuzz
+
+    - name: Build parser fuzz target
+      working-directory: fuzz
+      run: cargo fuzz build
