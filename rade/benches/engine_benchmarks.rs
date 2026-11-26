@@ -57,7 +57,7 @@ fn bench_eval_iterative(c: &mut Criterion) {
 
     group.bench_function("all_events", |b| {
         b.iter(|| {
-            let mut engine = RadeEngine::from_rules(rules.clone());
+            let engine = RadeEngine::from_rules(rules.clone());
             let matches = engine.eval_iterative(black_box(events.clone()));
             black_box(matches)
         })
@@ -154,7 +154,7 @@ fn bench_scaling_events(c: &mut Criterion) {
             &scaled_events,
             |b, events| {
                 b.iter(|| {
-                    let mut engine = RadeEngine::from_rules(rules.clone());
+                    let engine = RadeEngine::from_rules(rules.clone());
                     let matches = engine.eval_iterative(black_box(events.clone()));
                     black_box(matches)
                 })
@@ -192,7 +192,7 @@ fn bench_comparison(c: &mut Criterion) {
     // Iterative
     group.bench_function("iterative", |b| {
         b.iter(|| {
-            let mut engine = RadeEngine::from_rules(rules.clone());
+            let engine = RadeEngine::from_rules(rules.clone());
             let matches = engine.eval_iterative(black_box(events.clone()));
             black_box(matches)
         })

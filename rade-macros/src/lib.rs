@@ -14,7 +14,12 @@ pub fn register_functions(attr: TokenStream, item: TokenStream) -> TokenStream {
 
     for arg in args {
         if let NestedMeta::Meta(Meta::NameValue(nv)) = arg {
-            let ident = nv.path.get_ident().unwrap().to_string();
+            let Some(ident) = nv.path.get_ident() else {
+                return syn::Error::new_spanned(nv.path, "expected an identifier")
+                    .to_compile_error()
+                    .into();
+            };
+            let ident = ident.to_string();
             match ident.as_str() {
                 "map" => {
                     if let Lit::Str(litstr) = nv.lit {
@@ -30,7 +35,11 @@ pub fn register_functions(attr: TokenStream, item: TokenStream) -> TokenStream {
         }
     }
 
-    let map_ident = map_ident.expect("map argument missing");
+    let Some(map_ident) = map_ident else {
+        return syn::Error::new(proc_macro2::Span::call_site(), "map argument missing")
+            .to_compile_error()
+            .into();
+    };
     let registry_ident = format_ident!("{}Registry", map_ident);
 
     // Parse module
@@ -87,7 +96,7 @@ pub fn register_functions(attr: TokenStream, item: TokenStream) -> TokenStream {
                                     .to_string()?;
                             },
                             "Vec<i64>" => quote! {
-                                let #arg_name: Vec<String> = args.get(#idx)
+                                let #arg_name: Vec<i64> = args.get(#idx)
                                     .ok_or_else(|| format!("Missing argument {} for function {}", #idx, #fn_name_str))?
                                     .to_int_list()?;
                             },
@@ -115,8 +124,7 @@ pub fn register_functions(attr: TokenStream, item: TokenStream) -> TokenStream {
                 }
 
                 // Validate allowed return type
-                let mut ret_ty = String::new();
-                match &f.sig.output {
+                let ret_ty = match &f.sig.output {
                     ReturnType::Default => {
                         return syn::Error::new_spanned(
                             &f.sig.output,
@@ -126,7 +134,7 @@ pub fn register_functions(attr: TokenStream, item: TokenStream) -> TokenStream {
                         .into();
                     },
                     ReturnType::Type(_, ty) => {
-                        ret_ty = get_type(ty);
+                        let ret_ty = get_type(ty);
                         if !is_allowed_type(ret_ty.as_str()) {
                             return syn::Error::new_spanned(
                                 ty,
@@ -135,8 +143,9 @@ pub fn register_functions(attr: TokenStream, item: TokenStream) -> TokenStream {
                             .to_compile_error()
                             .into();
                         }
+                        ret_ty
                     },
-                }
+                };
 
                 // Generate Val constructor based on return type
                 let val_constructor = match ret_ty.as_str() {

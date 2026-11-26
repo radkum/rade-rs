@@ -58,8 +58,8 @@ impl From<&EventSerialized> for Event {
                 YamlValue::Number(n) => {
                     if let Some(i) = n.as_i64() {
                         let _ = numbers.insert(key.to_string(), i);
-                    } else {
-                        let _ = floats.insert(key.to_string(), n.as_f64().unwrap());
+                    } else if let Some(f) = n.as_f64() {
+                        let _ = floats.insert(key.to_string(), f);
                     }
                 },
                 YamlValue::String(s) => {
@@ -89,7 +89,11 @@ impl From<&EventSerialized> for Event {
                         let _ = string_lists.insert(key.to_string(), str_list);
                     }
                 },
-                _ => todo!(),
+                YamlValue::Null => continue,
+                other => {
+                    log::warn!("Skipping unsupported event value for key '{}': {:?}", key, other);
+                    continue;
+                },
             };
             let _ = all.insert(key.to_string(), value.into());
         }

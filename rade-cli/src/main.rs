@@ -1,6 +1,4 @@
-mod utils;
-
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use anyhow::{Context, Result, anyhow};
 use clap::{Parser, Subcommand};
@@ -9,7 +7,7 @@ use rade::*;
 #[derive(Parser)]
 #[command(name = "rade-cli")]
 #[command(author = "Radosław Kumor <radoslaw.kumorekit@gmail.com>")]
-#[command(version = "0.0.1")]
+#[command(version)]
 #[command(about = "RADE - Real-time Advanced Detection Engine CLI", long_about = None)]
 struct Cli {
     /// Enable verbose logging
@@ -80,7 +78,7 @@ fn main() -> Result<()> {
 }
 
 /// Compile YAML rules to binary format
-fn compile_rules(rules_path: &PathBuf, output_path: &PathBuf) -> Result<()> {
+fn compile_rules(rules_path: &Path, output_path: &Path) -> Result<()> {
     log::info!("Compiling rules from: {}", rules_path.display());
 
     // Load rules from directory or file
@@ -107,11 +105,11 @@ fn compile_rules(rules_path: &PathBuf, output_path: &PathBuf) -> Result<()> {
     let rule_set = RuleSet::from(rules);
 
     // Ensure parent directory exists
-    if let Some(parent) = output_path.parent() {
-        if !parent.exists() {
-            std::fs::create_dir_all(parent)
-                .with_context(|| format!("Failed to create output directory: {}", parent.display()))?;
-        }
+    if let Some(parent) = output_path.parent()
+        && !parent.exists()
+    {
+        std::fs::create_dir_all(parent)
+            .with_context(|| format!("Failed to create output directory: {}", parent.display()))?;
     }
 
     let mut output_file = std::fs::File::create(output_path)
@@ -136,7 +134,7 @@ fn compile_rules(rules_path: &PathBuf, output_path: &PathBuf) -> Result<()> {
 }
 
 /// Evaluate events against compiled rules
-fn eval_events(rules_path: &PathBuf, events_path: &PathBuf, use_predicates: bool) -> Result<()> {
+fn eval_events(rules_path: &Path, events_path: &Path, use_predicates: bool) -> Result<()> {
     log::info!("Loading ruleset from: {}", rules_path.display());
 
     // Load compiled ruleset

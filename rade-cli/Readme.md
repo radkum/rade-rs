@@ -1,25 +1,20 @@
 # RADE-CLI — Command Line Interface for RADE
 
-[![Rust](https://img.shields.io/badge/rust-1.85%2B-orange.svg)](https://www.rust-lang.org/)
-[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![Rust](https://img.shields.io/badge/rust-1.89%2B-orange.svg)](https://www.rust-lang.org/)
+[![License](https://img.shields.io/badge/license-MIT%20OR%20Apache--2.0-blue.svg)](https://github.com/radkum/rade-rs/blob/master/LICENSE-MIT)
 
 ## Overview
 
-**RADE-CLI** is the command-line interface for the [RADE](../rade/Readme.md) (Real-time Advanced Detection Engine). It provides a convenient way to:
+**RADE-CLI** is the command-line interface for the [RADE](../rade/Readme.md)
+(Real-time Advanced Detection Engine). It provides a convenient way to:
 
-- Load and compile detection rules from YAML files
-- Serialize rules to optimized binary format
+- Load and parse detection rules from YAML files
+- Serialize rules to an optimized binary format
 - Evaluate events against compiled rules
 - Display match results
 
----
-
-## Features
-
-- **Rule Compilation** — Convert YAML rules to binary format for faster loading
-- **Event Evaluation** — Process events and detect matches
-- **Debug Logging** — Detailed logging for troubleshooting
-- **Batch Processing** — Evaluate multiple events against multiple rules
+The CLI is a thin wrapper around the `rade` library. Paths are always passed
+explicitly with flags; there are no hard-coded default paths.
 
 ---
 
@@ -28,16 +23,14 @@
 ### Build from Source
 
 ```bash
-# Clone the repository
 git clone https://github.com/radkum/rade-rs.git
 cd rade-rs
 
-# Build in release mode
 cargo build -p rade-cli --release
-
-# The binary will be at: target/release/rade-cli.exe (Windows)
-# Or: target/release/rade-cli (Linux/macOS)
 ```
+
+The binary is written to `target/release/rade-cli.exe` on Windows or
+`target/release/rade-cli` on Linux/macOS.
 
 ### Development Build
 
@@ -47,11 +40,70 @@ cargo build -p rade-cli
 
 ---
 
+## Commands
+
+```
+rade-cli [--verbose] <COMMAND>
+
+Commands:
+  compile  Compile YAML rules to binary format
+  eval     Evaluate events against compiled rules
+```
+
+### `compile`
+
+| Flag | Description |
+|------|-------------|
+| `-r, --rules <PATH>` | Rules directory (searched recursively) or a single YAML file |
+| `-o, --output <FILE>` | Output path for the compiled binary ruleset |
+
+```bash
+cargo run -p rade-cli -- compile \
+  -r rade/test_data/rules \
+  -o rade/test_data/ruleset.bin
+```
+
+### `eval`
+
+| Flag | Description |
+|------|-------------|
+| `-r, --rules <FILE>` | Compiled binary ruleset |
+| `-e, --events <PATH>` | Events directory or a single YAML file |
+| `-p, --predicates` | Use predicate-based evaluation (compiled once, faster for repeated use) |
+
+```bash
+cargo run -p rade-cli -- eval \
+  -r rade/test_data/ruleset.bin \
+  -e rade/test_data/events
+
+cargo run -p rade-cli -- eval \
+  -r rade/test_data/ruleset.bin \
+  -e rade/test_data/events \
+  --predicates
+```
+
+With a compiled binary you can also invoke the built executable directly:
+
+```bash
+./target/release/rade-cli compile -r rules/ -o ruleset.bin
+./target/release/rade-cli eval -r ruleset.bin -e events/
+```
+
+Use `--help` on the binary or subcommand for the full flag list:
+
+```bash
+cargo run -p rade-cli -- --help
+cargo run -p rade-cli -- eval --help
+```
+
+---
+
 ## Quick Start
 
-### 1. Prepare Your Rules
+### 1. Prepare rules
 
-Create YAML rule files in a directory. Each rule should have a unique UUID:
+Create YAML rule files (a directory or a single file). Each rule needs a UUID
+and a `condition`:
 
 ```yaml
 # rules/amsi_bypass.yaml
@@ -64,84 +116,76 @@ condition: |
   content.contains('AmsiUtils') && content.contains('amsiInitFailed')
 ```
 
-### 2. Prepare Your Events
+### 2. Prepare events
 
-Create YAML event files in a directory:
+Create YAML event files:
 
 ```yaml
 # events/suspicious_event.yaml
-process_name: 'powershell'
+process_name: powershell
 process_id: 1234
 content: '[Ref].Assembly.GetType("System.Management.Automation.AmsiUtils").GetField("amsiInitFailed")'
 ```
 
-### 3. Run Detection
+### 3. Compile and evaluate
 
 ```bash
-cargo run -p rade-cli
+cargo run -p rade-cli -- compile -r rules/ -o ruleset.bin
+cargo run -p rade-cli -- eval -r ruleset.bin -e events/
 ```
-
-The CLI will:
-1. Load rules from `rade/test_data/rules/`
-2. Compile and serialize rules to `rade/test_data/ruleset.bin`
-3. Load events from `rade/test_data/events/`
-4. Evaluate all events against all rules
-5. Display matches
 
 ---
 
-## Usage
+## Sample Output
 
-### Basic Execution
+`compile` reports how many rules were loaded and where the binary was written:
+
+```
+[INFO  rade_cli] Compiling rules from: rade/test_data/rules
+[INFO  rade_cli] Loaded 11 rule(s)
+[INFO  rade_cli] Successfully compiled 11 rule(s) to: rade/test_data/ruleset.bin
+✓ Compiled 11 rule(s) to rade/test_data/ruleset.bin
+```
+
+`eval` prints one entry per event that matched at least one rule:
+
+```
+Evaluating 16 event(s) against 11 rule(s)...
+
+Matches { 
+	0: "amsi_bypass", Matched: [43025534-69e4-4e81-a78f-fad61111a7df]
+	1: "credential_dump", Matched: [99887766-5544-3322-1100-ffeeddccbbaa]
+	2: "encoded_command", Matched: [87654321-4321-8765-4321-876543210987]
+}
+
+✓ Evaluation complete for 16 event(s)
+```
+
+The rule UUIDs come from your rule files, so the exact values will differ.
+
+---
+
+## Log Levels
+
+Logging uses `env_logger`. The default level is `info`; pass `-v` / `--verbose`
+for `debug`:
 
 ```bash
-# From workspace root
-cargo run -p rade-cli
-
-# Or run the compiled binary directly
-./target/release/rade-cli
+cargo run -p rade-cli -- --verbose compile -r rules/ -o ruleset.bin
+cargo run -p rade-cli -- -v eval -r ruleset.bin -e events/
 ```
 
-### Sample Output
-
-```
-Rules serialized successfully
-Loaded 16 events
-Loaded 11 rules
-Event Matches:
-╔══════════════════════════════════════════════════════════════════════════════╗
-║ Event: amsi_bypass                                                            ║
-║ Matched Rules: [43025534-69e4-4e81-a78f-fad61111a7df]                        ║
-╠══════════════════════════════════════════════════════════════════════════════╣
-║ Event: credential_dump                                                        ║
-║ Matched Rules: [55667788-99aa-bbcc-ddee-ff0011223344]                        ║
-╠══════════════════════════════════════════════════════════════════════════════╣
-║ Event: encoded_command                                                        ║
-║ Matched Rules: [87654321-4321-8765-4321-876543210987]                        ║
-╚══════════════════════════════════════════════════════════════════════════════╝
-```
-
-### Log Levels
-
-The CLI uses `env_logger` for logging. Control verbosity with `RUST_LOG`:
+`RUST_LOG` can be used for per-module filtering:
 
 ```bash
 # Windows PowerShell
-$env:RUST_LOG="debug"; cargo run -p rade-cli
-
-# Windows CMD
-set RUST_LOG=debug && cargo run -p rade-cli
+$env:RUST_LOG="rade=debug"; cargo run -p rade-cli -- eval -r ruleset.bin -e events/
 
 # Linux/macOS
-RUST_LOG=debug cargo run -p rade-cli
+RUST_LOG=rade=debug cargo run -p rade-cli -- eval -r ruleset.bin -e events/
 ```
 
-Available log levels:
-- `error` — Only errors
-- `warn` — Warnings and errors
-- `info` — Informational messages
-- `debug` — Detailed debug output (default)
-- `trace` — Very verbose tracing
+Available levels: `error`, `warn`, `info`, `debug`, `trace`.
 
 ---
 
@@ -208,15 +252,14 @@ Available log levels:
 
 ---
 
-## Directory Structure
+## Example Layout
 
-The CLI expects the following structure relative to the workspace root:
+The repository ships sample data under `rade/test_data/`:
 
 ```
 rade-rs/
 ├── rade/
 │   └── test_data/
-│       ├── ruleset.bin          # Generated: compiled rules
 │       ├── events/              # Input: event YAML files
 │       │   ├── event1.yaml
 │       │   ├── event2.yaml
@@ -228,15 +271,14 @@ rade-rs/
 │               └── ...
 └── rade-cli/
     └── src/
-        ├── main.rs              # CLI entry point
-        └── utils.rs             # Helper functions
+        └── main.rs              # CLI entry point
 ```
+
+`ruleset.bin` is generated wherever you point `-o`; it is not committed.
 
 ---
 
 ## Testing
-
-### Run CLI Tests
 
 ```bash
 cargo test -p rade-cli
@@ -244,7 +286,8 @@ cargo test -p rade-cli
 
 ### Manual Testing
 
-1. **Add a new rule:**
+1. Add a rule:
+
    ```yaml
    # rade/test_data/rules/amsi_disable/MyRule.yaml
    id: 11111111-2222-3333-4444-555555555555
@@ -253,36 +296,41 @@ cargo test -p rade-cli
      process_name == 'suspicious.exe'
    ```
 
-2. **Add a test event:**
+2. Add an event:
+
    ```yaml
    # rade/test_data/events/test_event.yaml
-   process_name: 'suspicious.exe'
+   process_name: suspicious.exe
    process_id: 9999
    ```
 
-3. **Run and verify:**
+3. Compile and evaluate:
+
    ```bash
-   cargo run -p rade-cli
+   cargo run -p rade-cli -- compile -r rade/test_data/rules -o rade/test_data/ruleset.bin
+   cargo run -p rade-cli -- eval -r rade/test_data/ruleset.bin -e rade/test_data/events
    ```
 
 ### Verify Rule Compilation
 
-The CLI outputs "Rules serialized successfully" when rules are compiled without errors. Check for parse errors in the debug output if rules fail to load.
+On success `compile` prints:
+
+```
+✓ Compiled N rule(s) to <output path>
+```
+
+If a rule fails to parse, `compile` exits with an error that names the failing
+rule and the parser message.
 
 ---
 
 ## Benchmarking
 
-The RADE library (not CLI) includes Criterion benchmarks:
+The RADE library (not the CLI) includes Criterion benchmarks:
 
 ```bash
-# Run all benchmarks
 cargo bench -p rade
-
-# Run specific benchmark
 cargo bench -p rade -- comparison
-
-# Quick test (no full measurement)
 cargo bench -p rade -- --test
 ```
 
@@ -292,79 +340,70 @@ See [RADE Readme](../rade/Readme.md#benchmarks) for benchmark details.
 
 ## Troubleshooting
 
-### Common Issues
+### `Failed to load events`
+- Check the path passed with `-e`.
+- The path must be an existing file or directory.
+- Event files must be valid YAML.
 
-#### "Failed to load events from dir"
-- Ensure you're running from the workspace root (`rade-rs/`)
-- Check that `rade/test_data/events/` exists and contains YAML files
+### `Failed to read rule` / parse error
+- Check YAML syntax in rule files.
+- Verify the UUID format: `xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx`.
+- Ensure the condition uses the DSL syntax (`&&`, `||`, `!`, methods such as
+  `.contains('...')`).
 
-#### "Failed to read rule from path"
-- Check YAML syntax in rule files
-- Verify UUID format: `xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx`
-- Ensure condition syntax is valid
+### Fields missing in events
+- A rule referencing a field that is absent from an event is treated as a
+  non-match; this is expected.
+- Events only need the fields referenced by the rules you evaluate.
 
-#### "Field not found" warnings
-- This is expected when a rule checks for a field that doesn't exist in an event
-- Events only need fields referenced by matching rules
+### Predicate mode
+- With `--predicates` the CLI calls `compile_rules()` automatically before
+  `eval_with_predicates()`. Without the flag it uses `eval_iterative()`, which
+  needs no compilation.
 
-#### "Predicates not compiled"
-- Call `engine.compile_rules()` before `eval_with_predicates()`
-- Or use `eval_iterative()` which doesn't require compilation
-
-### Debug Mode
-
-Enable full debug logging:
+### Debug mode
 
 ```bash
 # Windows PowerShell
-$env:RUST_LOG="trace"; cargo run -p rade-cli
-
-# This shows:
-# - Each rule being loaded
-# - Each event being parsed
-# - Each predicate evaluation
-# - Match/no-match decisions
+cargo run -p rade-cli -- -v eval -r rade/test_data/ruleset.bin -e rade/test_data/events
 ```
+
+This shows rule loading, event parsing, predicate evaluation and per-rule
+match decisions.
 
 ---
 
 ## Configuration
 
-### Customizing Paths
+All input/output locations are command-line arguments:
 
-Edit `rade-cli/src/main.rs` to change default paths:
+| Value | Flag | Notes |
+|-------|------|-------|
+| Rules input | `-r` on `compile` | directory or single YAML file |
+| Ruleset output | `-o` on `compile` | parent directories are created |
+| Ruleset input | `-r` on `eval` | binary produced by `compile` |
+| Events input | `-e` on `eval` | directory or single YAML file |
+| Evaluation mode | `--predicates` on `eval` | omit for iterative mode |
 
-```rust
-// Change event directory
-let events_path = PathBuf::from("rade/test_data/events");
+There are no default paths to edit.
 
-// Change rule directory (in utils.rs)
-let rules_path = PathBuf::from("rade/test_data/rules");
+### Future additions
 
-// Change output binary path
-let output_path = PathBuf::from("rade/test_data/ruleset.bin");
-```
+The CLI is intentionally small. Possible extensions (not implemented):
 
-### Adding New Features
-
-The CLI is designed to be extended. Common additions:
-
-1. **Command-line arguments** — Use `clap` for argument parsing
-2. **JSON output** — Serialize matches to JSON for tooling integration
-3. **Watch mode** — Monitor directories for new events
-4. **Remote rules** — Fetch rules from HTTP endpoints
+1. JSON output for tooling integration
+2. Watch mode for new event files
+3. Fetching rules from a remote endpoint
 
 ---
 
 ## Examples
 
-### Example: Security Monitoring Setup
+### Security monitoring setup
 
 ```bash
-# 1. Create rules for your environment
 mkdir -p rules/custom
 
-# 2. Add detection rules
 cat > rules/custom/detect_mimikatz.yaml << EOF
 id: aaaabbbb-cccc-dddd-eeee-ffffffffffff
 name: Mimikatz Detection
@@ -376,31 +415,26 @@ condition: |
   content.contains('sekurlsa') || content.contains('kerberos::')
 EOF
 
-# 3. Run detection
-cargo run -p rade-cli
+cargo run -p rade-cli -- compile -r rules/custom -o ruleset.bin
+cargo run -p rade-cli -- eval -r ruleset.bin -e events/
 ```
 
-### Example: Batch Event Processing
+### Batch event processing
 
 ```bash
-# Process a directory of exported events
-# (assuming events are in YAML format)
-
-# 1. Copy events to test_data/events
-cp /path/to/exported/events/*.yaml rade/test_data/events/
-
-# 2. Run detection
-cargo run -p rade-cli > results.txt
-
-# 3. Review matches
-cat results.txt
+cp /path/to/exported/events/*.yaml events/
+cargo run -p rade-cli -- compile -r rules/ -o ruleset.bin
+cargo run -p rade-cli -- eval -r ruleset.bin -e events/ > results.txt
 ```
 
 ---
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+Licensed under either of Apache-2.0
+([LICENSE-APACHE](https://github.com/radkum/rade-rs/blob/master/LICENSE-APACHE))
+or MIT ([LICENSE-MIT](https://github.com/radkum/rade-rs/blob/master/LICENSE-MIT)),
+at your option.
 
 ---
 
@@ -409,4 +443,3 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - [RADE Library Documentation](../rade/Readme.md) — Core engine documentation
 - [Rule DSL Reference](../rade/Readme.md#rule-dsl-reference) — Condition syntax guide
 - [Benchmarks](../rade/Readme.md#benchmarks) — Performance information
-

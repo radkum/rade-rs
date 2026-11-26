@@ -1,4 +1,4 @@
-use macros::register_functions;
+use rade_macros::register_functions;
 use serde::{Deserialize, Serialize};
 
 use super::{Event, ResultMap, Val, ValType};
@@ -59,7 +59,8 @@ mod definitions {
     pub fn split_to_digits(s: i64) -> Vec<i64> {
         s.to_string()
             .chars()
-            .map(|c| c.to_digit(10).unwrap() as i64)
+            .filter_map(|c| c.to_digit(10))
+            .map(|d| d as i64)
             .collect()
     }
 

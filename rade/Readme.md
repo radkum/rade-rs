@@ -1,7 +1,7 @@
 # RADE — Real-time Advanced Detection Engine
 
-[![Rust](https://img.shields.io/badge/rust-1.85%2B-orange.svg)](https://www.rust-lang.org/)
-[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![Rust](https://img.shields.io/badge/rust-1.89%2B-orange.svg)](https://www.rust-lang.org/)
+[![License](https://img.shields.io/badge/license-MIT%20OR%20Apache--2.0-blue.svg)](https://github.com/radkum/rade-rs/blob/master/LICENSE-MIT)
 
 ## Overview
 
@@ -35,11 +35,19 @@ RADE provides a powerful Domain-Specific Language (DSL) for writing detection ru
 
 ## Installation
 
-Add RADE to your `Cargo.toml`:
+RADE is distributed via git (it is not published to crates.io). Add it to your
+`Cargo.toml`:
 
 ```toml
 [dependencies]
-rade = { path = "../rade" }  # or from crates.io when published
+rade = { git = "https://github.com/radkum/rade-rs.git" }
+```
+
+Or use a local path when working inside the workspace:
+
+```toml
+[dependencies]
+rade = { path = "../rade" }
 ```
 
 ## Quick Start
@@ -380,7 +388,10 @@ rade/
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+Licensed under either of Apache-2.0
+([LICENSE-APACHE](https://github.com/radkum/rade-rs/blob/master/LICENSE-APACHE))
+or MIT ([LICENSE-MIT](https://github.com/radkum/rade-rs/blob/master/LICENSE-MIT)),
+at your option.
 
 ---
 

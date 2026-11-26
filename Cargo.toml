@@ -2,6 +2,8 @@
 members = [
     "rade",
     "rade-cli",
+    "rade-ffi",
+    "rade-macros",
 ]
 resolver = "3"
 

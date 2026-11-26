@@ -10,6 +10,18 @@ impl Matches {
             self.0.push((event, matched_rules));
         }
     }
+
+    pub fn iter(&self) -> impl Iterator<Item = (&Event, &MatchedRules)> {
+        self.0.iter().map(|pair| (&pair.0, &pair.1))
+    }
+
+    pub fn len(&self) -> usize {
+        self.0.len()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.0.is_empty()
+    }
 }
 
 #[derive(Debug, Default)]
@@ -21,6 +33,18 @@ impl MatchedRules {
 
     pub fn add(&mut self, rule_id: Guid) {
         self.0.push(rule_id);
+    }
+
+    pub fn iter(&self) -> impl Iterator<Item = &Guid> {
+        self.0.iter()
+    }
+
+    pub fn len(&self) -> usize {
+        self.0.len()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.0.is_empty()
     }
 }
 

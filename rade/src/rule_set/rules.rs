@@ -16,6 +16,10 @@ impl Rules {
         self.0.push(rule);
     }
 
+    pub fn get(&self, id: &crate::Guid) -> Option<&Rule> {
+        self.0.iter().find(|rule| rule.id() == id)
+    }
+
     #[cfg(feature = "std")]
     pub fn from_dir(path: &std::path::Path) -> RadeResult<Self> {
         fn imp_from_dir(path: &std::path::Path, rules: &mut Rules) -> RadeResult<()> {

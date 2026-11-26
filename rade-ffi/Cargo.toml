@@ -1,0 +1,20 @@
+[package]
+name = "rade-ffi"
+version = "0.1.0"
+description = "C ABI (cdylib/staticlib) for the RADE detection engine"
+authors = ["radkum <radoslaw.kumorekit@gmail.com>"]
+edition = "2024"
+rust-version = "1.89"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/radkum/rade-rs"
+homepage = "https://github.com/radkum/rade-rs"
+keywords = ["security", "detection", "ffi", "cdylib"]
+categories = ["development-tools::ffi"]
+
+[lib]
+name = "rade"
+crate-type = ["cdylib", "staticlib", "rlib"]
+
+[dependencies]
+rade-core = { package = "rade", path = "../rade", version = "0.1.0" }
+serde_json = { workspace = true }

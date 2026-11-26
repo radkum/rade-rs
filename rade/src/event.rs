@@ -29,8 +29,10 @@ impl Events {
                     .map_err(|err| format!("Failed to read file {}: {:?}", path.display(), err))?;
                 let event_serialized = serde_yaml_bw::from_str::<EventSerialized>(&content)?;
                 let mut event = Event::from(event_serialized);
-                if event.name().is_none() {
-                    event.set_name(path.file_stem().unwrap().to_string_lossy().as_ref());
+                if event.name().is_none()
+                    && let Some(stem) = path.file_stem()
+                {
+                    event.set_name(stem.to_string_lossy().as_ref());
                 }
                 events.add_event(event);
             } else if path.is_dir() {
@@ -88,7 +90,7 @@ impl Events {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct Event {
     bools: HashMap<String, bool>,
     numbers: HashMap<String, i64>,
@@ -100,28 +102,52 @@ pub struct Event {
 }
 
 impl Event {
+    fn clear_field(&mut self, key: &str) {
+        self.bools.remove(key);
+        self.numbers.remove(key);
+        self.floats.remove(key);
+        self.strings.remove(key);
+        self.string_lists.remove(key);
+        self.number_lists.remove(key);
+    }
+
     pub fn add_bool(&mut self, key: String, value: bool) {
-        self.bools.insert(key, value);
+        self.clear_field(&key);
+        self.bools.insert(key.clone(), value);
+        self.all.insert(key, Val::from(value));
     }
 
     pub fn add_string(&mut self, key: String, value: String) {
-        self.strings.insert(key, FatString::from(value));
+        self.clear_field(&key);
+        self.strings.insert(key.clone(), FatString::from(&value));
+        self.all.insert(key, Val::from(value));
     }
 
     pub fn add_int(&mut self, key: String, value: i64) {
-        self.numbers.insert(key, value);
+        self.clear_field(&key);
+        self.numbers.insert(key.clone(), value);
+        self.all.insert(key, Val::from(value));
     }
 
     pub fn add_float(&mut self, key: String, value: f64) {
-        self.floats.insert(key, value);
+        self.clear_field(&key);
+        self.floats.insert(key.clone(), value);
+        self.all.insert(key, Val::from(value));
     }
 
     pub fn add_str_list(&mut self, key: String, value: Vec<String>) {
-        self.string_lists.insert(key, value.into_iter().map(FatString::from).collect());
+        self.clear_field(&key);
+        self.string_lists.insert(
+            key.clone(),
+            value.iter().map(FatString::from).collect(),
+        );
+        self.all.insert(key, Val::StrList(value.into()));
     }
 
     pub fn add_int_list(&mut self, key: String, value: Vec<i64>) {
-        self.number_lists.insert(key, value);
+        self.clear_field(&key);
+        self.number_lists.insert(key.clone(), value.clone());
+        self.all.insert(key, Val::IntList(value.into()));
     }
 
     pub fn tokenize(s: &str) -> Vec<FatString> {
@@ -136,8 +162,11 @@ impl Event {
     }
 
     pub fn set_name(&mut self, name: &str) {
+        self.clear_field("name");
         self.strings
             .insert("name".to_string(), FatString::from(name.to_string()));
+        self.all
+            .insert("name".to_string(), Val::from(name.to_string()));
     }
 
     pub fn get_int_field(&self, field_name: &String) -> RadeResult<i64> {
@@ -176,5 +205,49 @@ impl Event {
         self.all
             .get(field_name)
             .ok_or_else(|| "Field not found".to_string().into())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn added_fields_are_visible_to_the_evaluator() {
+        let mut event = Event::default();
+        event.add_string("CommandLine".to_string(), "-enc".to_string());
+        event.add_int("ProcessId".to_string(), 1234);
+        event.add_str_list("Args".to_string(), vec!["a".to_string()]);
+        event.add_int_list("Ports".to_string(), vec![443]);
+
+        assert_eq!(
+            event.get_field(&"CommandLine".to_string()).unwrap(),
+            &Val::from("-enc".to_string())
+        );
+        assert_eq!(
+            event.get_field(&"ProcessId".to_string()).unwrap(),
+            &Val::from(1234_i64)
+        );
+        assert!(matches!(
+            event.get_field(&"Args".to_string()).unwrap(),
+            Val::StrList(_)
+        ));
+        assert!(matches!(
+            event.get_field(&"Ports".to_string()).unwrap(),
+            Val::IntList(_)
+        ));
+    }
+
+    #[test]
+    fn overwriting_a_field_with_another_type_clears_the_old_type() {
+        let mut event = Event::default();
+        event.add_int("field".to_string(), 1);
+        event.add_string("field".to_string(), "value".to_string());
+
+        assert!(event.get_int_field(&"field".to_string()).is_err());
+        assert_eq!(
+            event.get_field(&"field".to_string()).unwrap(),
+            &Val::from("value".to_string())
+        );
     }
 }

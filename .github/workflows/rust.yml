@@ -11,12 +11,33 @@ env:
 
 jobs:
   build:
-
     runs-on: ubuntu-latest
 
     steps:
     - uses: actions/checkout@v4
-    - name: Build
-      run: cargo build --verbose
-    - name: Run tests
-      run: cargo test --verbose
+
+    - name: Install Rust
+      uses: dtolnay/rust-toolchain@stable
+      with:
+        components: clippy
+
+    - name: Build core without default features (no_std)
+      run: cargo build -p rade --no-default-features --verbose
+
+    - name: Clippy
+      run: cargo clippy --workspace --all-targets -- -D warnings
+
+    - name: Build FFI (cdylib)
+      run: cargo build -p rade-ffi --release
+
+    - name: Package check
+      run: |
+        cargo package -p rade-macros
+        cargo package -p rade --no-verify --list
+        cargo package -p rade-cli --no-verify --list
+
+    - name: Test
+      run: cargo test --workspace --verbose
+
+    - name: Run example
+      run: cargo run -p rade --example eval

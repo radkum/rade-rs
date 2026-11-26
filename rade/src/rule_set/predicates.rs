@@ -5,7 +5,7 @@ use hashbrown::HashMap;
 use super::{rule::OpHash, rules::Rules};
 
 pub type ResultMap = HashMap<OpHash, bool>;
-pub type PredType = Box<dyn Fn(&crate::Event, &mut ResultMap) -> bool>;
+pub type PredType = Box<dyn Fn(&crate::Event, &mut ResultMap) -> bool + Send + Sync>;
 
 pub(crate) struct Predicate(pub(crate) PredType);
 pub(crate) struct Predicates {

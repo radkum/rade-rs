@@ -6,20 +6,34 @@ use crate::{InsensitiveFlag, RadeResult, prelude::*};
 
 type Pair<'i> = ::pest::iterators::Pair<'i, Rule>;
 
+fn next_pair<'i>(pairs: &mut ::pest::iterators::Pairs<'i, Rule>) -> RadeResult<Pair<'i>> {
+    Ok(pairs
+        .next()
+        .ok_or("Malformed rule condition: unexpected end of input")?)
+}
+
+fn first_inner<'i>(pair: Pair<'i>) -> RadeResult<Pair<'i>> {
+    Ok(pair
+        .into_inner()
+        .next()
+        .ok_or("Malformed rule condition: empty token")?)
+}
+
 macro_rules! unexpected_token {
     ($pair:expr) => {
-        panic!("Unexpected token: {:?}", $pair.as_rule())
+        return Err(format!("Unexpected token: {:?}", $pair.as_rule()).into())
     };
 }
 
 macro_rules! check_rule {
     ($pair:expr, $rule:pat) => {
         if !matches!($pair.as_rule(), $rule) {
-            panic!(
-                "Unexpected token: {:?}, instead of {}",
+            return Err(format!(
+                "Unexpected token: {:?}, expected {}",
                 $pair.as_rule(),
                 stringify!($rule)
-            );
+            )
+            .into());
         }
     };
 }
@@ -31,14 +45,14 @@ pub struct ConditionParser;
 impl ConditionParser {
     pub fn parse_condition(input: &str) -> RadeResult<Condition> {
         let mut pairs = Self::parse(Rule::program, input)?;
-        let program_pair = pairs.next().unwrap();
-        let expression_token = program_pair.into_inner().next().unwrap();
+        let program_pair = next_pair(&mut pairs)?;
+        let expression_token = first_inner(program_pair)?;
         Self::parse_expression(expression_token)
     }
 
     fn parse_expression(token: Pair) -> RadeResult<OperandContainer> {
         check_rule!(token, Rule::expression);
-        let inner = token.into_inner().next().unwrap();
+        let inner = first_inner(token)?;
         Self::parse_logical_or(inner)
     }
 
@@ -51,7 +65,10 @@ impl ConditionParser {
             logical_ors.push(Self::parse_logical_and(token)?);
         }
         if logical_ors.len() == 1 {
-            Ok(logical_ors.into_iter().next().unwrap())
+            Ok(logical_ors
+                .into_iter()
+                .next()
+                .ok_or("Empty logical expression")?)
         } else {
             Ok(OperandContainer::from(Operand::Or(logical_ors)))
         }
@@ -66,7 +83,10 @@ impl ConditionParser {
             logical_ands.push(Self::parse_comparison(token)?);
         }
         if logical_ands.len() == 1 {
-            Ok(logical_ands.into_iter().next().unwrap())
+            Ok(logical_ands
+                .into_iter()
+                .next()
+                .ok_or("Empty logical expression")?)
         } else {
             Ok(OperandContainer::from(Operand::And(logical_ands)))
         }
@@ -75,10 +95,10 @@ impl ConditionParser {
     fn parse_comparison(token: Pair) -> RadeResult<OperandContainer> {
         check_rule!(token, Rule::comparison);
         let mut pairs = token.into_inner();
-        let left_token = pairs.next().unwrap();
+        let left_token = next_pair(&mut pairs)?;
         let left_op = Self::parse_unary(left_token)?;
         if let Some(eq_op_token) = pairs.next() {
-            let right_token = pairs.next().unwrap();
+            let right_token = next_pair(&mut pairs)?;
             let right_op = Self::parse_unary(right_token)?;
 
             let (comparator, flag) = match eq_op_token.as_rule() {
@@ -118,7 +138,7 @@ impl ConditionParser {
     fn parse_unary(token: Pair) -> RadeResult<Val> {
         check_rule!(token, Rule::unary);
         let mut pairs = token.into_inner();
-        let token = pairs.next().unwrap();
+        let token = next_pair(&mut pairs)?;
         let mut primary = Self::parse_primary(token)?;
 
         for postfix in pairs {
@@ -169,7 +189,7 @@ impl ConditionParser {
         let mut inner = token.into_inner();
 
         // First element is the method name (identifier)
-        let method_name = inner.next().unwrap().as_str().to_string();
+        let method_name = next_pair(&mut inner)?.as_str().to_string();
 
         // Parse arguments
         let mut args = Vec::new();
@@ -194,7 +214,7 @@ impl ConditionParser {
     /// arguments
     fn parse_expression_no_validate(token: Pair) -> RadeResult<OperandContainer> {
         check_rule!(token, Rule::expression);
-        let inner = token.into_inner().next().unwrap();
+        let inner = first_inner(token)?;
         Self::parse_logical_or_no_validate(inner)
     }
 
@@ -207,7 +227,10 @@ impl ConditionParser {
             logical_ors.push(Self::parse_logical_and_no_validate(token)?);
         }
         if logical_ors.len() == 1 {
-            Ok(logical_ors.into_iter().next().unwrap())
+            Ok(logical_ors
+                .into_iter()
+                .next()
+                .ok_or("Empty logical expression")?)
         } else {
             Ok(OperandContainer::from(Operand::Or(logical_ors)))
         }
@@ -222,7 +245,10 @@ impl ConditionParser {
             logical_ands.push(Self::parse_comparison_no_validate(token)?);
         }
         if logical_ands.len() == 1 {
-            Ok(logical_ands.into_iter().next().unwrap())
+            Ok(logical_ands
+                .into_iter()
+                .next()
+                .ok_or("Empty logical expression")?)
         } else {
             Ok(OperandContainer::from(Operand::And(logical_ands)))
         }
@@ -231,10 +257,10 @@ impl ConditionParser {
     fn parse_comparison_no_validate(token: Pair) -> RadeResult<OperandContainer> {
         check_rule!(token, Rule::comparison);
         let mut pairs = token.into_inner();
-        let left_token = pairs.next().unwrap();
+        let left_token = next_pair(&mut pairs)?;
         let left_op = Self::parse_unary(left_token)?;
         if let Some(eq_op_token) = pairs.next() {
-            let right_token = pairs.next().unwrap();
+            let right_token = next_pair(&mut pairs)?;
             let right_op = Self::parse_unary(right_token)?;
 
             let (comparator, flag) = match eq_op_token.as_rule() {
@@ -294,7 +320,7 @@ impl ConditionParser {
             },
         };
         let mut pairs = token.into_inner();
-        let index_expr = pairs.next().unwrap();
+        let index_expr = next_pair(&mut pairs)?;
         // Parse the index - for now we only support integer literals
         let index = Self::parse_integer(index_expr)?;
         Ok(Val::FieldIndex(field, index))
@@ -303,7 +329,7 @@ impl ConditionParser {
     fn parse_primary(token: Pair) -> RadeResult<Val> {
         check_rule!(token, Rule::primary);
         let mut pairs = token.into_inner();
-        let primary_token = pairs.next().unwrap();
+        let primary_token = next_pair(&mut pairs)?;
         Ok(match primary_token.as_rule() {
             Rule::literal => Self::parse_literal(primary_token)?,
             Rule::array_literal => Self::parse_array_literal(primary_token)?,
@@ -316,11 +342,11 @@ impl ConditionParser {
     fn parse_parenthesis(token: Pair) -> RadeResult<Val> {
         check_rule!(token, Rule::parenthesis_expression);
         let mut pairs = token.into_inner();
-        let token = pairs.next().unwrap();
+        let token = next_pair(&mut pairs)?;
         Ok(Val::Expression(Box::new(
             if let Rule::NOT_OP = token.as_rule() {
                 OperandContainer::from(Operand::Negate(Box::new(Self::parse_expression(
-                    pairs.next().unwrap(),
+                    next_pair(&mut pairs)?,
                 )?)))
             } else {
                 Self::parse_expression(token)?
@@ -330,13 +356,19 @@ impl ConditionParser {
 
     fn parse_literal(token: Pair) -> RadeResult<Val> {
         check_rule!(token, Rule::literal);
-        let inner = token.into_inner().next().unwrap();
+        let inner = first_inner(token)?;
         Ok(match inner.as_rule() {
             Rule::bool => Val::Bool(inner.as_str().parse::<bool>()?.into()),
             Rule::string => Val::Str(inner.as_str().replace("\\", "").into()),
             Rule::integer => Val::Int(Self::parse_integer(inner)?.into()),
             Rule::float => Val::Float(inner.as_str().parse::<f64>()?.into()),
-            Rule::cidr => todo!(),
+            Rule::cidr => {
+                return Err(format!(
+                    "CIDR literals are not supported yet: {}",
+                    inner.as_str()
+                )
+                .into());
+            },
             Rule::regex => Self::parse_regex(inner)?,
             _ => unexpected_token!(inner),
         })
@@ -352,10 +384,10 @@ impl ConditionParser {
             if inner.as_rule() == Rule::array_element_list {
                 for elem in inner.into_inner() {
                     // Each element is array_element which contains literal | identifier
-                    let elem_inner = elem.into_inner().next().unwrap();
+                    let elem_inner = first_inner(elem)?;
                     match elem_inner.as_rule() {
                         Rule::literal => {
-                            let literal_inner = elem_inner.into_inner().next().unwrap();
+                            let literal_inner = first_inner(elem_inner)?;
                             match literal_inner.as_rule() {
                                 Rule::string => {
                                     if is_string_array == Some(false) {
@@ -408,7 +440,7 @@ impl ConditionParser {
 
     fn parse_integer(token: Pair) -> RadeResult<i64> {
         check_rule!(token, Rule::integer);
-        let inner = token.into_inner().next().unwrap();
+        let inner = first_inner(token)?;
         let str = inner.as_str().replace("_", "");
         // 1️⃣ Handle sign
         let (negative, str_without_sign) = if let Some(rest) = str.strip_prefix('-') {
@@ -2422,6 +2454,7 @@ mod tests {
     // ============================================
 
     #[test]
+    #[allow(clippy::approx_constant)]
     fn test_method_call_field_float_abs() {
         let condition = ConditionParser::parse_condition("value.abs() > 3.0").unwrap();
         let map = HashMap::from([("value".to_string(), (-3.14).into())]);
@@ -2454,6 +2487,7 @@ mod tests {
     }
 
     #[test]
+    #[allow(clippy::approx_constant)]
     fn test_method_call_field_float_to_string() {
         let condition = ConditionParser::parse_condition("value.to_string() == '3.14'").unwrap();
         let map = HashMap::from([("value".to_string(), 3.14.into())]);

@@ -1,312 +1,297 @@
-# RADE-RS ╬ô├ç├╢ Real-time Advanced Detection Engine
+# RADE-RS — Real-time Advanced Detection Engine
 
-[![Rust](https://img.shields.io/badge/rust-1.85%2B-orange.svg)](https://www.rust-lang.org/)
+[![Rust](https://img.shields.io/badge/rust-1.89%2B-orange.svg)](https://www.rust-lang.org/)
 [![License](https://img.shields.io/badge/license-MIT%20OR%20Apache--2.0-blue.svg)](LICENSE-MIT)
-[![Build Status](https://img.shields.io/badge/build-passing-brightgreen.svg)]()
+[![CI](https://github.com/radkum/rade-rs/actions/workflows/rust.yml/badge.svg)](https://github.com/radkum/rade-rs/actions/workflows/rust.yml)
 
-<p align="center">
-  <strong>A high-performance, Rust-based rule evaluation engine for real-time security event detection</strong>
-</p>
+**RADE** (Real-time Advanced Detection Engine) is a Rust rule evaluation engine
+for security events. Rules are written in a small YAML DSL, parsed with a
+[pest](https://pest.rs/) grammar, and evaluated against typed events (strings,
+integers, floats, booleans and lists). Rules can be compiled to a binary format
+with a SHA-256 checksum; the core crate builds with `no_std`.
 
----
+The workspace is at `0.1.0`: the library and CLI work and are covered by tests.
+Distribution is via git and GitHub tags; the crates are intentionally **not
+published to crates.io**, and RADE is not integrated into any kernel.
 
-## Γëí╞Æ├ä┬╗ Overview
+## Status and roadmap
 
-**RADE** (Real-time Advanced Detection Engine) is a powerful pattern matching and rule evaluation engine written in Rust. It's designed for analyzing security events in real-time, detecting malicious or suspicious activities through customizable rules and advanced pattern matching techniques.
+- **Distribution**: git / GitHub tags only. No crates.io publication; this avoids
+  a permanent maintenance and support commitment before there is a real
+  downstream consumer.
+- **Scope**: user-space rule engine. Kernel integration is out of scope.
+- **Non-goals for now**: new DSL operators, CIDR literals, kernel integration,
+  unverified performance claims.
+- **Next**: RAMON integration in user space (Rust dependency or `rade.dll` via
+  `rade-ffi`) and MSRV/lockfile cleanup.
 
-### Key Highlights
-
-- Γëí╞Æ├£├ç **Blazingly Fast** ╬ô├ç├╢ Optimized for millions of events per second
-- Γëí╞Æ├╢├å **Memory Safe** ╬ô├ç├╢ Written in 100% safe Rust
-- Γëí╞Æ├┤┬¬ **`no_std` Compatible** ╬ô├ç├╢ Run in embedded or kernel environments
-- Γëí╞Æ├ä┬┐ **Expressive DSL** ╬ô├ç├╢ Intuitive rule definition language
-- Γëí╞Æ├╢├« **Extensible** ╬ô├ç├╢ Easy to add custom operators and functions
-
----
-
-## Γëí╞Æ├┤┬¬ Workspace Structure
-
-This repository is a Cargo workspace containing multiple crates:
+## Workspace
 
 ```
 rade-rs/
-╬ô├╢┬ú╬ô├╢├ç╬ô├╢├ç rade/           # Core detection engine library
-╬ô├╢┬ú╬ô├╢├ç╬ô├╢├ç rade-cli/       # Command-line interface tool
-╬ô├╢├╢╬ô├╢├ç╬ô├╢├ç macros/         # Procedural macros for code generation
+├── rade/         # Core library: event model, DSL parser, evaluator, serialization
+├── rade-cli/     # CLI: compile YAML rules to binary, evaluate events
+├── rade-ffi/     # C ABI: builds rade.dll / librade.so + include/rade.h
+└── rade-macros/  # Internal proc-macro used to register DSL functions
 ```
 
-| Crate | Description |
-|-------|-------------|
-| [`rade`](./rade/) | Core library implementing the detection engine, rule DSL parser, and evaluation logic |
-| [`rade-cli`](./rade-cli/) | CLI tool for compiling rules and evaluating events |
-| `macros` | Internal procedural macros (function registration) |
+## Quick start
 
----
-
-## Γëí╞Æ├£├ç Quick Start
-
-### Prerequisites
-
-- **Rust 1.85+** (2024 edition)
-- **Cargo** (comes with Rust)
-
-### Installation
+Requires Rust 1.89+ (edition 2024).
 
 ```bash
-# Clone the repository
-git clone https://github.com/radkum/rade-rs.git
-cd rade-rs
-
-# Build all crates
-cargo build --release
-
-# Run tests
+cargo build --workspace
 cargo test --workspace
-
-# Run benchmarks
 cargo bench -p rade
 ```
 
-### Using the CLI
+### CLI
 
 ```bash
-# Compile YAML rules to binary format
-cargo run -p rade-cli -- compile -r rules/ -o ruleset.bin
+# Compile YAML rules into a binary ruleset
+cargo run -p rade-cli -- compile -r rade/test_data/rules -o rade/test_data/ruleset.bin
 
-# Evaluate events against rules
-cargo run -p rade-cli -- eval -r ruleset.bin -e events/
+# Evaluate events (iterative mode)
+cargo run -p rade-cli -- eval -r rade/test_data/ruleset.bin -e rade/test_data/events
+
+# Evaluate events using pre-compiled predicates
+cargo run -p rade-cli -- eval -r rade/test_data/ruleset.bin -e rade/test_data/events --predicates
 ```
 
-### Using as a Library
+### Library
 
-Add to your `Cargo.toml`:
+Add the dependency via git (or a local path):
 
 ```toml
 [dependencies]
 rade = { git = "https://github.com/radkum/rade-rs.git" }
 ```
 
-Basic usage:
+Self-contained example, also available as a runnable
+[`examples/eval.rs`](./rade/examples/eval.rs):
 
 ```rust
-use rade::{Event, RadeEngine, Rules, RuleSet};
+use rade::{Event, Events, RadeEngine, Rule};
 
-fn main() -> anyhow::Result<()> {
-    // Load compiled rules
-    let ruleset = RuleSet::from_bin_file("ruleset.bin")?;
-    
-    // Create the engine
-    let engine = RadeEngine::new(ruleset);
-    
-    // Create an event
-    let event = Event::default()
-        .with_string("CommandLine", "powershell.exe -enc SGVsbG8gV29ybGQ=")
-        .with_string("Image", "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe");
-    
-    // Evaluate
-    let matches = engine.eval(&event);
-    
-    for rule in matches {
-        println!("Matched: {}", rule.name());
-    }
-    
+const RULE_YAML: &str = r#"
+id: 43025534-69e4-4e81-a78f-fad61111a7df
+name: Encoded PowerShell Command
+condition: |
+  Image.ends_with('powershell.exe') && CommandLine.contains('-enc')
+"#;
+
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let rule = Rule::from_yaml(RULE_YAML)?;
+
+    let mut event = Event::default();
+    event.add_string(
+        "Image".to_string(),
+        r"C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe".to_string(),
+    );
+    event.add_string(
+        "CommandLine".to_string(),
+        "powershell.exe -enc SGVsbG8gV29ybGQ=".to_string(),
+    );
+
+    let mut engine = RadeEngine::from_rules(vec![rule].into());
+    engine.compile_rules();
+    let matches = engine.eval_with_predicates(Events::new(vec![event]))?;
+
+    println!("{matches}");
     Ok(())
 }
 ```
 
----
+Loading a pre-compiled ruleset:
 
-## Γëí╞Æ├┤┬Ñ Rule DSL
+```rust
+use rade::{Events, RadeEngine, RuleSet};
+use std::fs::File;
+use std::path::Path;
 
-RADE uses an expressive Domain-Specific Language for defining detection rules:
-
-### YAML Rule Format
-
-```yaml
-name: Suspicious PowerShell Execution
-description: Detects encoded PowerShell commands
-author: Security Team
-severity: high
-tags:
-  - attack.execution
-  - attack.t1059.001
-
-condition: |
-  Image endswith "powershell.exe" and
-  (CommandLine.contains('-enc') or CommandLine.contains('-encodedcommand')
+let rule_set = RuleSet::deserialize(&mut File::open("ruleset.bin")?)?;
+let mut engine = RadeEngine::from_rules(rule_set.retain_rules());
+engine.compile_rules();
+let matches = engine.eval_with_predicates(Events::from_dir(Path::new("events/"))?)?;
 ```
 
-### Supported Operators
+## Evaluation modes
 
-| Operator | Description | Example |
-|----------|-------------|---------|
-| `==`, `!=` | Equality | `Status == 0` |
-| `>`, `<`, `>=`, `<=` | Comparison | `EventId > 1000` |
-| `contains` | Substring match | `CommandLine contains "mimikatz"` |
-| `startswith` | Prefix match | `Image startswith "C:\\Windows"` |
-| `endswith` | Suffix match | `Image endswith ".exe"` |
-| `matches` | Regex match | `CommandLine matches /[A-Za-z0-9+\/=]{40,}/` |
-| `in` | List membership | `EventId in [1, 4688, 4624]` |
-| `and`, `or`, `not` | Logical operators | `A and (B or not C)` |
+`RadeEngine` exposes two ways to evaluate events:
 
-### String Methods
+| Method | Needs `compile_rules()` | When to use |
+|--------|--------------------------|-------------|
+| `eval_iterative(events)` | no | one-off batches, debugging |
+| `eval_with_predicates(events)` | yes | many batches against the same rules (preferred) |
 
-```yaml
-# Case-insensitive comparison
-condition: CommandLine.to_lowercase().contains('password') 
+Both are public and equivalent in results. `eval_with_predicates` returns an
+error if predicates were not compiled first.
 
-# String manipulation
-condition: length(CommandLine) > 1000
+## C / C++ integration
 
-# Field indexing (for lists)
-condition: CommandLineArgs[0] == "cmd.exe"
-```
-
----
-
-## ╬ô├£├¡ Performance
-
-RADE is designed for high-throughput scenarios:
-
-| Benchmark | Events/sec | Notes |
-|-----------|------------|-------|
-| Simple rule evaluation | ~2M | Single field comparison |
-| Complex rule (5+ conditions) | ~500K | Multiple operators |
-| Predicate-based evaluation | ~1.5M | Pre-compiled conditions |
-| 100 rules Γö£├╣ 1000 events | ~50K | Batch processing |
-
-Run benchmarks yourself:
+`rade-ffi` builds a shared library named `rade` plus a C header:
 
 ```bash
-cargo bench -p rade
+cargo build -p rade-ffi --release
+# Windows: target/release/rade.dll
+# Linux:   target/release/librade.so
+# macOS:   target/release/librade.dylib
 ```
 
----
+Header: [`rade-ffi/include/rade.h`](./rade-ffi/include/rade.h).
 
-## Γëí╞Æ├╢┬║ Features
+```c
+#include "rade.h"
+#include <stdio.h>
 
-### `no_std` Support
+int main(void) {
+    char *err = NULL;
+    RadeEngine *engine = rade_engine_new_from_yaml_dir("rade/test_data/rules", &err);
+    if (!engine) {
+        fprintf(stderr, "%s\n", err ? err : "failed to load rules");
+        rade_string_free(err);
+        return 1;
+    }
 
-RADE core can run without the standard library:
+    char *out = NULL;
+    int32_t rc = rade_engine_eval_json(
+        engine,
+        "{\"Image\":\"C:/Windows/System32/WindowsPowerShell/v1.0/powershell.exe\","
+        "\"CommandLine\":\"powershell.exe -enc SGVsbG8=\"}",
+        &out, &err);
 
-```toml
-[dependencies]
-rade = { git = "...", default-features = false }
+    if (rc == 0) {
+        printf("%s\n", out);
+    } else {
+        fprintf(stderr, "%s\n", err ? err : "evaluation failed");
+    }
+
+    rade_string_free(out);
+    rade_string_free(err);
+    rade_engine_free(engine);
+    return 0;
+}
 ```
 
-**Note**: Some features (rule parsing, file I/O) require `std`. Pre-compiled binary rules can be evaluated in `no_std` environments.
+Notes:
 
-### Feature Flags
+- A handle is **not thread-safe**. Use one `RadeEngine` per thread; the ABI does
+  not require changes for that model.
+- Returned strings and error messages must be released with `rade_string_free`.
+- Panics inside the library are caught and reported as status `2`, so a bad rule
+  or event does not abort the host process. This relies on the default
+  `panic = "unwind"`; building with `panic = "abort"` disables that protection.
+- Rust applications should depend on the `rade` crate directly instead of going
+  through the C ABI.
+
+## Rule DSL
+
+Rules are YAML files with a UUID, optional metadata and a `condition` string:
+
+```yaml
+id: 43025534-69e4-4e81-a78f-fad61111a7df
+name: AMSI Bypass Detection
+description: Detects attempts to bypass AMSI
+categories: ["defense_evasion", "amsi"]
+mitre_tactic: Defense Evasion
+mitre_tactic_id: TA0005
+mitre_id: T1562.001
+condition: |
+  content.contains('AmsiUtils') && content.contains('amsiInitFailed')
+```
+
+### Operators
+
+| Operator | Meaning | Example |
+|----------|---------|---------|
+| `==`, `!=` | equality | `Status == 0` |
+| `>`, `<`, `>=`, `<=` | ordering | `EventId > 1000` |
+| `~=` | case-insensitive equality | `Image ~= 'CMD.EXE'` |
+| `^=` | apostrophe-insensitive equality | `CommandLine ^= '...'` |
+| `^~=` | case- and apostrophe-insensitive equality | `CommandLine ^~= '...'` |
+| `=~`, `!~` | regex match / non-match | `CommandLine =~ /-enc[a-z]*/i` |
+| `&&`, `\|\|`, `!` | logical operators | `A && (B \|\| !C)` |
+| `()` | grouping | `(A \|\| B) && C` |
+
+### Methods and functions
+
+String methods: `.contains(s)`, `.starts_with(s)`, `.ends_with(s)`, `.len()`,
+`.is_empty()`, `.to_lowercase()`, `.to_uppercase()`, `.trim()`,
+`.trim_start()`, `.trim_end()`, `.replace(a, b)`, `.to_string()`.
+
+Integer and float methods: `.abs()`, `.to_string()`; floats additionally
+`.floor()`, `.ceil()`, `.round()`.
+
+List methods: `.len()`, `.is_empty()`, `.first()`, `.last()`, `.get(i)`,
+`.contains(v)`, `.join(sep)` (string lists), `.sum()`, `.min()`, `.max()`,
+`.reverse()`.
+
+Functions: `length(s)`, `is_empty(s)`, `concat(list)`, `split(s, sep)`,
+`split_to_digits(n)`, `float_sum(a, b)`.
+
+Field indexing uses brackets: `Arguments[0] == 'cmd.exe'`.
+
+## Events
+
+Events are YAML maps of typed fields:
+
+```yaml
+process_name: powershell
+process_id: 1234
+enabled: true
+arguments: ['-enc', 'SGV...']
+ports: [443, 8443]
+```
+
+Supported types: string, integer, float, boolean, string list, integer list.
+
+## `no_std`
+
+The core crate can be built without the standard library:
+
+```bash
+cargo build -p rade --no-default-features
+```
+
+Parsing YAML rules and reading files require the default `std` feature.
+Pre-compiled binary rulesets and in-memory events can be evaluated in `no_std`.
 
 | Feature | Default | Description |
 |---------|---------|-------------|
-| `std` | ╬ô┬ú├á | Standard library support |
+| `std` | yes | standard library, YAML and file I/O |
 
----
+## Documentation
 
-## Γëí╞Æ├à├╣Γê⌐Γòò├à Architecture
+- [Library guide](./rade/Readme.md)
+- [CLI guide](./rade-cli/Readme.md)
+- API reference: `cargo doc -p rade --open`
 
-```
-╬ô├╢├«╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ë
-╬ô├╢├⌐                      RADE Engine                         ╬ô├╢├⌐
-╬ô├╢┬ú╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├▒
-╬ô├╢├⌐  ╬ô├╢├«╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ë  ╬ô├╢├«╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ë  ╬ô├╢├«╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ë  ╬ô├╢├⌐
-╬ô├╢├⌐  ╬ô├╢├⌐   Parser    ╬ô├╢├⌐  ╬ô├╢├⌐  Compiler   ╬ô├╢├⌐  ╬ô├╢├⌐   Evaluator     ╬ô├╢├⌐  ╬ô├╢├⌐
-╬ô├╢├⌐  ╬ô├╢├⌐   (pest)    ╬ô├╢├⌐╬ô├╢├ç╬ô├╢├ç╬ô├╢├⌐  (binary)   ╬ô├╢├⌐╬ô├╢├ç╬ô├╢├ç╬ô├╢├⌐  (iterative/    ╬ô├╢├⌐  ╬ô├╢├⌐
-╬ô├╢├⌐  ╬ô├╢├⌐             ╬ô├╢├⌐  ╬ô├╢├⌐             ╬ô├╢├⌐  ╬ô├╢├⌐   predicate)    ╬ô├╢├⌐  ╬ô├╢├⌐
-╬ô├╢├⌐  ╬ô├╢├╢╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├┐  ╬ô├╢├╢╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├┐  ╬ô├╢├╢╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├┐  ╬ô├╢├⌐
-╬ô├╢┬ú╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├▒
-╬ô├╢├⌐  ╬ô├╢├«╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ë    ╬ô├╢├⌐
-╬ô├╢├⌐  ╬ô├╢├⌐                    Event Model                   ╬ô├╢├⌐    ╬ô├╢├⌐
-╬ô├╢├⌐  ╬ô├╢├⌐  strings | integers | booleans | lists          ╬ô├╢├⌐    ╬ô├╢├⌐
-╬ô├╢├⌐  ╬ô├╢├╢╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├┐    ╬ô├╢├⌐
-╬ô├╢├╢╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├ç╬ô├╢├┐
-```
-
-### Core Components
-
-1. **Parser** ╬ô├ç├╢ Parses rule DSL using PEG grammar (pest)
-2. **Compiler** ╬ô├ç├╢ Converts rules to optimized binary format
-3. **Evaluator** ╬ô├ç├╢ Matches events against compiled rules
-4. **Event Model** ╬ô├ç├╢ Flexible structure for security events
-
----
-
-## Γëí╞Æ├┤├£ Documentation
-
-- [RADE Library Documentation](./rade/Readme.md)
-- [RADE-CLI Usage Guide](./rade-cli/Readme.md)
-- Rule Writing Guide *(coming soon)*
-- [API Reference](https://docs.rs/rade) *(when published)*
-
----
-
-## Γëí╞Æ┬║┬¼ Testing
+## Testing
 
 ```bash
-# Run all tests
 cargo test --workspace
-
-# Run with logging
-RUST_LOG=debug cargo test --workspace -- --nocapture
-
-# Run specific test
-cargo test -p rade test_rule_evaluation
+cargo clippy --workspace --all-targets -- -D warnings
+cargo build -p rade --no-default-features
+cargo run -p rade --example eval
 ```
-
----
-
-## Γëí╞Æ├▒┬Ñ Contributing
-
-Contributions are welcome! Please feel free to submit a Pull Request.
-
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
-
-### Development Setup
-
-```bash
-# Install Rust nightly (for some dev tools)
-rustup install nightly
-
-# Format code
-cargo +nightly fmt
-
-# Run clippy
-cargo clippy --workspace --all-targets
-
-# Run all checks before committing
-cargo test --workspace && cargo clippy --workspace
-```
-
----
 
 ## License
 
-Licensed under MIT or Apache-2.0, at your option. See [LICENSE-MIT](LICENSE-MIT) and [LICENSE-APACHE](LICENSE-APACHE) for details.
+Licensed under either of
 
----
+- Apache License, Version 2.0 ([LICENSE-APACHE](LICENSE-APACHE))
+- MIT license ([LICENSE-MIT](LICENSE-MIT))
 
-## Γëí╞Æ├û├à Acknowledgments
+at your option.
 
-- [pest](https://pest.rs/) ╬ô├ç├╢ PEG parser generator
-- [serde](https://serde.rs/) ╬ô├ç├╢ Serialization framework
-- [criterion](https://github.com/bheisler/criterion.rs) ╬ô├ç├╢ Benchmarking library
-- [hashbrown](https://github.com/rust-lang/hashbrown) ╬ô├ç├╢ `no_std` compatible HashMap
+## Acknowledgments
 
----
+- [pest](https://pest.rs/) — PEG parser generator
+- [serde](https://serde.rs/) — serialization framework
+- [criterion](https://github.com/bheisler/criterion.rs) — benchmarks
+- [hashbrown](https://github.com/rust-lang/hashbrown) — `no_std` HashMap
 
-## Γëí╞Æ├┤┬╝ Contact
+## Contact
 
-- **Author**: RadosΓö╝├⌐aw Kumor
-- **Email**: radoslaw.kumorekit@gmail.com
-- **GitHub**: [@radkum](https://github.com/radkum)
-
----
-
-<p align="center">
-  <sub>Built with ╬ô┬Ñ├▒Γê⌐Γòò├à in Rust</sub>
-</p>
+- Author: Radosław Kumor
+- GitHub: [@radkum](https://github.com/radkum)

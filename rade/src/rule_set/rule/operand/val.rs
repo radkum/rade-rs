@@ -6,7 +6,6 @@ mod int;
 mod int_list;
 mod method;
 mod regex;
-mod serialization;
 mod str;
 mod str_list;
 mod val_type;
@@ -214,11 +213,11 @@ impl Val {
         }
     }
 
-    /// Convert Val to String (for function arguments, without Event context)
-    pub fn to_int_list(&self) -> RadeResult<Vec<String>> {
+    /// Convert Val to Vec<i64> (for function arguments, without Event context)
+    pub fn to_int_list(&self) -> RadeResult<Vec<i64>> {
         match self {
-            Val::IntList(list) => Ok(list.0.iter().map(|i| i.to_string()).collect()),
-            _ => Err(format!("Cannot convert {:?} to Vec<String>", self).into()),
+            Val::IntList(list) => Ok(list.0.clone()),
+            _ => Err(format!("Cannot convert {:?} to Vec<i64>", self).into()),
         }
     }
 
@@ -388,10 +387,12 @@ impl From<&YamlValue> for Val {
         match value {
             YamlValue::Bool(b) => Val::Bool(Bool(*b)),
             YamlValue::Number(n) => {
-                if n.is_f64() {
-                    Val::Float(Float(n.as_f64().unwrap()))
+                if let Some(i) = n.as_i64() {
+                    Val::Int(Int(i))
+                } else if let Some(f) = n.as_f64() {
+                    Val::Float(Float(f))
                 } else {
-                    Val::Int(Int(n.as_i64().unwrap()))
+                    Val::Str(Str(FatString::from(format!("{n:?}"))))
                 }
             },
             YamlValue::String(s) => Val::Str(Str(FatString::from(s))),
@@ -407,10 +408,17 @@ impl From<&YamlValue> for Val {
                             .collect(),
                     ))
                 } else {
-                    panic!("Unsupported YAML sequence type")
+                    Val::StrList(StrList(
+                        seq.iter()
+                            .map(|v| match v.as_str() {
+                                Some(s) => FatString::from(s.to_string()),
+                                None => FatString::from(format!("{v:?}")),
+                            })
+                            .collect(),
+                    ))
                 }
             },
-            _ => todo!(),
+            other => Val::Str(Str(FatString::from(format!("{other:?}")))),
         }
     }
 }
@@ -422,7 +430,19 @@ impl From<&Val> for YamlValue {
             Val::Str(s) => YamlValue::String(s.0.plain().to_string()),
             Val::Bool(b) => YamlValue::Bool(b.0),
             Val::Float(f) => YamlValue::Number(f.0.into()),
-            _ => todo!(),
+            Val::IntList(list) => YamlValue::Sequence(
+                list.0
+                    .iter()
+                    .map(|i| YamlValue::Number((*i).into()))
+                    .collect(),
+            ),
+            Val::StrList(list) => YamlValue::Sequence(
+                list.0
+                    .iter()
+                    .map(|s| YamlValue::String(s.plain().to_string()))
+                    .collect(),
+            ),
+            other => YamlValue::String(format!("{other:?}")),
         }
     }
 }

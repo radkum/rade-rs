@@ -1,0 +1,18 @@
+[package]
+name = "rade-macros"
+version = "0.1.0"
+description = "Procedural macros for the RADE detection engine"
+authors = ["radkum <radoslaw.kumorekit@gmail.com>"]
+edition = "2024"
+rust-version = "1.89"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/radkum/rade-rs"
+homepage = "https://github.com/radkum/rade-rs"
+
+[lib]
+proc-macro = true
+
+[dependencies]
+syn = {version = "1.0.64", features = ["full"]}
+quote = "1.0"
+proc-macro2 = "1.0"
