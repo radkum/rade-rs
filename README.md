@@ -10,7 +10,7 @@ for security events. Rules are written in a small YAML DSL, parsed with a
 integers, floats, booleans and lists). Rules can be compiled to a binary format
 with a SHA-256 checksum; the core crate builds with `no_std`.
 
-The workspace is at `0.1.0`: the library and CLI work and are covered by tests.
+The workspace is at `0.1.2`: the library and CLI work and are covered by tests.
 Distribution is via git and GitHub tags; the crates are intentionally **not
 published to crates.io**, and RADE is not integrated into any kernel.
 

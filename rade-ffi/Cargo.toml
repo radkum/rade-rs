@@ -1,6 +1,6 @@
 [package]
 name = "rade-ffi"
-version = "0.1.0"
+version = "0.1.2"
 description = "C ABI (cdylib/staticlib) for the RADE detection engine"
 authors = ["radkum <radoslaw.kumorekit@gmail.com>"]
 edition = "2024"
@@ -16,5 +16,5 @@ name = "rade"
 crate-type = ["cdylib", "staticlib", "rlib"]
 
 [dependencies]
-rade-core = { package = "rade", path = "../rade", version = "0.1.0" }
+rade-core = { package = "rade", path = "../rade", version = "0.1.2" }
 serde_json = { workspace = true }

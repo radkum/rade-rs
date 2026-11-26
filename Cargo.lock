@@ -662,7 +662,7 @@ dependencies = [
 
 [[package]]
 name = "rade"
-version = "0.1.0"
+version = "0.1.2"
 dependencies = [
  "anyhow",
  "bincode",
@@ -684,7 +684,7 @@ dependencies = [
 
 [[package]]
 name = "rade-cli"
-version = "0.1.0"
+version = "0.1.2"
 dependencies = [
  "anyhow",
  "clap",
@@ -695,7 +695,7 @@ dependencies = [
 
 [[package]]
 name = "rade-ffi"
-version = "0.1.0"
+version = "0.1.2"
 dependencies = [
  "rade",
  "serde_json",
@@ -703,7 +703,7 @@ dependencies = [
 
 [[package]]
 name = "rade-macros"
-version = "0.1.0"
+version = "0.1.2"
 dependencies = [
  "proc-macro2",
  "quote",

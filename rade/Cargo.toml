@@ -1,6 +1,6 @@
 [package]
 name = "rade"
-version = "0.1.0"
+version = "0.1.2"
 description = "Real-Time Advanced Detection Engine"
 authors = ["radkum <radoslaw.kumorekit@gmail.com>"]
 edition = "2024"
@@ -34,7 +34,7 @@ sha2 = "0.10"
 spin = { version = "0.9", default-features = false, features = ["lazy"] }
 uuid = { version = "1.18.1", features = ["serde"] }
 thiserror-no-std = "2.0"
-rade-macros = { path = "../rade-macros", version = "0.1.0" }
+rade-macros = { path = "../rade-macros", version = "0.1.2" }
 
 [features]
 default = ["std"]
